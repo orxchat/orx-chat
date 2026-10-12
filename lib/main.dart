@@ -3,11 +3,15 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nearby_connections/nearby_connections.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:audioplayers/audioplayers.dart' show AudioPlayer, DeviceFileSource, ReleaseMode;
+import 'package:file_picker/file_picker.dart' show FilePicker, FileType;
+import 'package:record/record.dart' show AudioRecorder, AudioEncoder, RecordConfig;
 import 'package:cryptography/cryptography.dart' show Ed25519, KeyPairType, Signature, SimplePublicKey;
 
 const svc = 'com.btchat.app';
@@ -65,23 +69,52 @@ class Grp {
 
 class Msg {
   final String c, s, i;
-  final String? t, img;
-  Msg(this.c, this.s, this.i, {this.t, this.img});
-  Map toJson() => {'c': c, 's': s, 'i': i, 't': t, 'g': img};
-  factory Msg.fromJson(Map j) => Msg(j['c'], j['s'], j['i'], t: j['t'], img: j['g']);
+  final String? t, img, a;
+  int st;
+  Msg(this.c, this.s, this.i, {this.t, this.img, this.a, this.st = 0});
+  Map toJson() => {'c': c, 's': s, 'i': i, 't': t, 'g': img, 'a': a, 'st': st};
+  factory Msg.fromJson(Map j) =>
+      Msg(j['c'], j['s'], j['i'], t: j['t'], img: j['g'], a: j['a'], st: j['st'] ?? 2);
+}
+
+class XO {
+  final List<String> b = List.filled(9, '');
+  final String my;
+  String turn = 'X';
+  XO(this.my);
+  String? get win {
+    const l = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]
+    ];
+    for (final x in l) {
+      if (b[x[0]] != '' && b[x[0]] == b[x[1]] && b[x[0]] == b[x[2]]) return b[x[0]];
+    }
+    return b.every((e) => e != '') ? 'D' : null;
+  }
 }
 
 class Story {
-  final String from;
+  final String from, id;
   final String? text, img;
+  String? audio;
+  final Set<String> likes;
   final DateTime at;
-  Story(this.from, {this.text, this.img, DateTime? at}) : at = at ?? DateTime.now();
+  Story(this.from, {this.text, this.img, this.audio, String? id, DateTime? at, Set<String>? likes})
+      : likes = likes ?? {},
+        at = at ?? DateTime.now(),
+        id = id ?? '$from${DateTime.now().microsecondsSinceEpoch}';
   bool get live => DateTime.now().difference(at).inHours < 24;
   Color get color =>
       storyColors[(text ?? '').codeUnits.fold(0, (a, b) => a + b) % storyColors.length];
-  Map toJson() => {'f': from, 't': text, 'i': img, 'a': at.millisecondsSinceEpoch};
-  factory Story.fromJson(Map j) =>
-      Story(j['f'], text: j['t'], img: j['i'], at: DateTime.fromMillisecondsSinceEpoch(j['a']));
+  Map toJson() =>
+      {'f': from, 't': text, 'i': img, 'a': at.millisecondsSinceEpoch, 'd': id, 'u': audio, 'k': likes.toList()};
+  factory Story.fromJson(Map j) => Story(j['f'],
+      text: j['t'],
+      img: j['i'],
+      audio: j['u'],
+      id: j['d'],
+      likes: Set<String>.from(j['k'] ?? []),
+      at: DateTime.fromMillisecondsSinceEpoch(j['a']));
 }
 
 class Post {
@@ -89,37 +122,115 @@ class Post {
   final String? t, img, by;
   final int at;
   final Set<String> likes;
-  Post(this.i, this.a, this.at, {this.t, this.img, this.by, Set<String>? likes}) : likes = likes ?? {};
-  Map toJson() => {'i': i, 'a': a, 'at': at, 't': t, 'g': img, 'b': by, 'l': likes.toList()};
+  final List<Map> cm;
+  Post(this.i, this.a, this.at, {this.t, this.img, this.by, Set<String>? likes, List<Map>? cm})
+      : likes = likes ?? {},
+        cm = cm ?? [];
+  Map toJson() => {'i': i, 'a': a, 'at': at, 't': t, 'g': img, 'b': by, 'l': likes.toList(), 'm': cm};
   factory Post.fromJson(Map j) => Post(j['i'], j['a'], j['at'],
-      t: j['t'], img: j['g'], by: j['b'], likes: Set<String>.from(j['l'] ?? []));
+      t: j['t'],
+      img: j['g'],
+      by: j['b'],
+      likes: Set<String>.from(j['l'] ?? []),
+      cm: List<Map>.from((j['m'] ?? []).map((e) => Map.from(e))));
 }
 
-class StoryView extends StatelessWidget {
+class StoryView extends StatefulWidget {
   final List<Story> l;
-  final String title;
-  const StoryView(this.l, this.title, {super.key});
+  final String title, meU;
+  final void Function(Story) onLike;
+  const StoryView(this.l, this.title, this.meU, this.onLike, {super.key});
+  @override
+  State<StoryView> createState() => _StoryViewState();
+}
+
+class _StoryViewState extends State<StoryView> {
+  final pl = AudioPlayer();
+
+  @override
+  void initState() {
+    super.initState();
+    play(0);
+  }
+
+  Future<void> play(int i) async {
+    try {
+      await pl.stop();
+      final a = widget.l[i].audio;
+      if (a != null && File(a).existsSync()) {
+        await pl.setReleaseMode(ReleaseMode.loop);
+        await pl.play(DeviceFileSource(a));
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    pl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext c) => Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: Text(title)),
-        body: PageView(children: [
-          for (final s in l)
-            GestureDetector(
-              onTap: () => Navigator.pop(c),
-              child: s.img != null
-                  ? Center(child: Image.file(File(s.img!)))
-                  : Container(
-                      color: s.color,
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.all(24),
+        appBar: AppBar(
+            backgroundColor: Colors.black, foregroundColor: Colors.white, title: Text(widget.title)),
+        body: PageView(
+          onPageChanged: play,
+          children: [
+            for (final s in widget.l)
+              GestureDetector(
+                onTap: () => Navigator.pop(c),
+                child: Stack(children: [
+                  Positioned.fill(
+                    child: s.img != null
+                        ? Center(child: Image.file(File(s.img!)))
+                        : Container(
+                            color: s.color,
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.all(24),
+                            child: Text(s.text ?? '',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+                          ),
+                  ),
+                  if (s.img != null && s.text != null)
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 40,
                       child: Text(s.text!,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+                              color: Colors.white, fontSize: 20, backgroundColor: Colors.black54)),
                     ),
-            ),
-        ]),
+                  if (s.audio != null)
+                    const Positioned(top: 12, right: 12, child: Icon(Icons.music_note, color: Colors.white70)),
+                  Positioned(
+                    bottom: 4,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: s.from == widget.meU
+                          ? Text('❤ ${s.likes.length}',
+                              style: const TextStyle(color: Colors.white, fontSize: 18))
+                          : IconButton(
+                              icon: Icon(
+                                  s.likes.contains(widget.meU) ? Icons.favorite : Icons.favorite_border,
+                                  color: s.likes.contains(widget.meU) ? Colors.red : Colors.white,
+                                  size: 30),
+                              onPressed: () {
+                                widget.onLike(s);
+                                setState(() {});
+                              },
+                            ),
+                    ),
+                  ),
+                ]),
+              ),
+          ],
+        ),
       );
 }
 
@@ -143,6 +254,16 @@ class _HomeState extends State<Home> {
   final msgs = <Msg>[], stories = <Story>[];
   final certs = <String, Map>{};
   final posts = <Post>[];
+  final audioFor = <String, String>{};
+  final sentStory = <String>{};
+  final blocked = <String>{};
+  final games = <String, XO>{};
+  final rec = AudioRecorder();
+  final vp = AudioPlayer();
+  final sCtl = TextEditingController();
+  String? gameWith, playing;
+  bool recording = false, searching = false;
+  DateTime? recAt;
   final following = <String>{}, followers = <String>{};
   final tok = <String, String>{};
   final chain = <String, Future<void>>{};
@@ -150,6 +271,9 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    vp.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => playing = null);
+    });
     load();
   }
 
@@ -180,6 +304,7 @@ class _HomeState extends State<Home> {
           posts.add(Post.fromJson(e));
         }
         following.addAll(List<String>.from(j['fing'] ?? []));
+        blocked.addAll(List<String>.from(j['blk'] ?? []));
         followers.addAll(List<String>.from(j['fers'] ?? []));
         stories.addAll((j['stories'] as List).map((e) => Story.fromJson(e)).where((s) => s.live));
       });
@@ -202,6 +327,7 @@ class _HomeState extends State<Home> {
         'posts': posts.map((p) => p.toJson()).toList(),
         'fing': following.toList(),
         'fers': followers.toList(),
+        'blk': blocked.toList(),
         'msgs': msgs.map((m) => m.toJson()).toList(),
         'stories': stories.where((s) => s.live).map((s) => s.toJson()).toList(),
       }));
@@ -230,7 +356,7 @@ class _HomeState extends State<Home> {
 
   // ---------- profile ----------
   Future<void> pickAv() async {
-    final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 400, imageQuality: 70);
+    final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 256, maxHeight: 256, imageQuality: 50);
     if (f == null) return;
     final k = await keep(f.path);
     setState(() => tmpAv = k);
@@ -303,7 +429,14 @@ class _HomeState extends State<Home> {
 
   Future<void> hello(String id) async {
     sendJ(id, {'k': 'p', 'u': me!.u, 'n': me!.n, 'pk': me!.k, 'sg': await sign('${tok[id]}|${me!.u}')});
-    if (me!.a != null) sendFile(id, {'k': 'f', 'w': 'a'}, me!.a!);
+    final f = me!.a == null ? null : File(me!.a!);
+    if (f != null && f.existsSync()) {
+      if (f.lengthSync() <= 22000) {
+        sendJ(id, {'k': 'av', 'd': base64Encode(f.readAsBytesSync())});
+      } else {
+        sendFile(id, {'k': 'f', 'w': 'a'}, me!.a!);
+      }
+    }
   }
 
   Future<void> mergeCerts(List l) async {
@@ -361,6 +494,24 @@ class _HomeState extends State<Home> {
                   setVerify(u, role(u) != 'v');
                 },
               ),
+            ListTile(
+              leading: const Icon(Icons.block),
+              title: Text(blocked.contains(u) ? 'إلغاء الحظر' : 'حظر'),
+              onTap: () {
+                Navigator.pop(c);
+                setState(() {
+                  if (blocked.contains(u)) {
+                    blocked.remove(u);
+                  } else {
+                    blocked.add(u);
+                    for (final e in who.entries.where((e) => e.value == u).toList()) {
+                      Nearby().disconnectFromEndpoint(e.key);
+                    }
+                  }
+                });
+                save();
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.person_remove),
               title: const Text('حذف الجهة'),
@@ -453,6 +604,10 @@ class _HomeState extends State<Home> {
 
   Future<void> init(String id, ConnectionInfo i) async {
     tok[id] = i.authenticationToken;
+    if (blocked.contains(i.endpointName)) {
+      Nearby().rejectConnection(id);
+      return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -496,8 +651,9 @@ class _HomeState extends State<Home> {
 
   Future<void> sendItem(String id, Msg m) async {
     final h = {'c': m.c.startsWith('g:') ? m.c : 'p', 's': m.s, 'i': m.i};
-    if (m.img != null) {
-      await sendFile(id, {'k': 'f', 'w': 'm', ...h}, m.img!);
+    final f = m.img ?? m.a;
+    if (f != null) {
+      await sendFile(id, {'k': 'f', 'w': 'm', ...h, 'v': m.a != null ? 1 : 0, 'x': f.split('.').last}, f);
     } else {
       await sendJ(id, {'k': 'm', ...h, 't': m.t});
     }
@@ -518,8 +674,8 @@ class _HomeState extends State<Home> {
         .toList();
   }
 
-  void post(String c, {String? t, String? img}) {
-    final m = Msg(c, me!.u, '${me!.u}${DateTime.now().microsecondsSinceEpoch}', t: t, img: img);
+  void post(String c, {String? t, String? img, String? aud}) {
+    final m = Msg(c, me!.u, '${me!.u}${DateTime.now().microsecondsSinceEpoch}', t: t, img: img, a: aud);
     final ts = targets(c);
     if (ts.isEmpty) snack('مفيش حد متصل من المحادثة دي دلوقتي');
     for (final id in ts) {
@@ -572,6 +728,10 @@ class _HomeState extends State<Home> {
         snack('تحذير: @$u بيستخدم مفتاح مختلف عن اللي نعرفه، اتجاهل');
         return;
       }
+      if (blocked.contains(u)) {
+        Nearby().disconnectFromEndpoint(id);
+        return;
+      }
       who[id] = u;
       setState(() => contacts[u] = Prof(u, j['n'], a: old?.a, k: pk));
       save();
@@ -579,6 +739,14 @@ class _HomeState extends State<Home> {
       if (following.contains(u)) sendJ(id, flMsg(u, true));
       for (final p in posts.where((p) => p.a == u && p.likes.contains(me!.u))) {
         sendJ(id, {'k': 'lk', 'p': p.i, 'on': true});
+      }
+      for (final p in posts.where((p) => p.a == u)) {
+        for (final x in p.cm.where((x) => x['u'] == me!.u)) {
+          sendJ(id, {'k': 'cm', 'p': p.i, 'ci': x['ci'], 't': x['t'], 'at': x['at']});
+        }
+      }
+      for (final st in stories.where((x) => x.from == u && x.live && x.likes.contains(me!.u))) {
+        sendJ(id, {'k': 'sl', 'sid': st.id, 'on': true});
       }
       if (groups[me!.u]?.m.contains(u) ?? false) sendGroup(id);
       for (final s in stories.where((s) => s.live && s.from == me!.u)) {
@@ -594,6 +762,45 @@ class _HomeState extends State<Home> {
       recv(id, j, t: j['t']);
     } else if (k == 'c') {
       await mergeCerts(j['l']);
+    } else if (k == 'ack') {
+      for (final m in msgs.where((m) => m.i == j['i'] && m.s == me!.u && m.st < 1).toList()) {
+        setState(() => m.st = 1);
+      }
+      save();
+    } else if (k == 'rd') {
+      final ids = List<String>.from(j['ids'] ?? []);
+      setState(() {
+        for (final m in msgs.where((m) => ids.contains(m.i) && m.s == me!.u)) {
+          m.st = 2;
+        }
+      });
+      save();
+    } else if (k == 'cm') {
+      final pp = posts.where((p) => p.i == j['p']).firstOrNull;
+      if (pp != null && !pp.cm.any((x) => x['ci'] == j['ci'])) {
+        setState(() => pp.cm.add({'ci': j['ci'], 'u': u, 't': (j['t'] ?? '').toString(), 'at': j['at']}));
+        save();
+      }
+    } else if (k == 'sl') {
+      final st = stories.where((x) => x.id == j['sid'] && x.from == me!.u).firstOrNull;
+      if (st != null) {
+        setState(() {
+          if (j['on'] == true) {
+            st.likes.add(u);
+          } else {
+            st.likes.remove(u);
+          }
+        });
+        save();
+      }
+    } else if (k == 'xo') {
+      xoRecv(u, j);
+    } else if (k == 'av') {
+      final d = await getApplicationDocumentsDirectory();
+      final path = '${d.path}/av_${u}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await File(path).writeAsBytes(base64Decode(j['d']));
+      setState(() => contacts[u] = Prof(u, prof(u).n, a: path, k: prof(u).k));
+      save();
     } else if (k == 'po') {
       recvPost(id, j);
     } else if (k == 'lk') {
@@ -624,7 +831,9 @@ class _HomeState extends State<Home> {
         }
       }
     } else if (k == 's') {
-      setState(() => stories.add(Story(u, text: j['t'])));
+      if (!stories.any((x) => x.id == j['sid'])) {
+        setState(() => stories.add(Story(u, text: j['t'], id: j['sid'], audio: audioFor.remove(j['sid']))));
+      }
       save();
     } else if (k == 'g' && u == j['o']) {
       final m = List<String>.from(j['m']);
@@ -639,7 +848,7 @@ class _HomeState extends State<Home> {
     }
   }
 
-  void recv(String id, Map h, {String? t, String? img}) {
+  void recv(String id, Map h, {String? t, String? img, String? aud}) {
     final u = who[id];
     if (u == null) return;
     final cc = (h['c'] ?? 'p') as String;
@@ -655,12 +864,24 @@ class _HomeState extends State<Home> {
       if (!ok.contains(s) || !ok.contains(u) || (s != u && u != g.o)) return;
       if (g.o == me!.u) {
         for (final t2 in targets(c, skip: id)) {
-          if (who[t2] != s) sendItem(t2, Msg(c, s, i, t: t, img: img));
+          if (who[t2] != s) sendItem(t2, Msg(c, s, i, t: t, img: img, a: aud));
         }
       }
     }
-    setState(() => msgs.add(Msg(c, s, i, t: t, img: img)));
+    final m = Msg(c, s, i, t: t, img: img, a: aud);
+    final viewing = view == 'chat' && cur == c;
+    if (viewing) m.st = 2;
+    setState(() => msgs.add(m));
     save();
+    if (!c.startsWith('g:')) {
+      sendJ(id, {'k': 'ack', 'i': i});
+      if (viewing) sendJ(id, {'k': 'rd', 'ids': [i]});
+    }
+    if (!viewing) {
+      HapticFeedback.mediumImpact();
+      SystemSound.play(SystemSoundType.alert);
+      snack('رسالة جديدة من ${prof(s).n}');
+    }
   }
 
   void upd(String id, PayloadTransferUpdate t) => q(id, () => upd2(id, t));
@@ -677,9 +898,29 @@ class _HomeState extends State<Home> {
     if (h['w'] == 'a') {
       setState(() => contacts[u] = Prof(u, prof(u).n, a: path, k: prof(u).k));
     } else if (h['w'] == 's') {
-      setState(() => stories.add(Story(u, img: path)));
+      if (!stories.any((x) => x.id == h['sid'])) {
+        setState(() => stories
+            .add(Story(u, text: h['t'], img: path, id: h['sid'], audio: audioFor.remove(h['sid']))));
+      }
+    } else if (h['w'] == 'sa') {
+      final ext = ((h['x'] ?? 'mp3') as String).toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+      final ap = '${d.path}/${t.id}.$ext';
+      await File(path).rename(ap);
+      final st = stories.where((x) => x.id == h['sid']).firstOrNull;
+      if (st != null) {
+        setState(() => st.audio = ap);
+      } else {
+        audioFor[h['sid']] = ap;
+      }
     } else if (h['w'] == 'm') {
-      recv(id, h, img: path);
+      if (h['v'] == 1) {
+        final ext = ((h['x'] ?? 'm4a') as String).toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+        final ap = '${d.path}/${t.id}.$ext';
+        await File(path).rename(ap);
+        recv(id, h, aud: ap);
+      } else {
+        recv(id, h, img: path);
+      }
     } else if (h['w'] == 'po') {
       recvPost(id, h, img: path);
     }
@@ -766,6 +1007,7 @@ class _HomeState extends State<Home> {
       'at': p.at,
       't': p.t,
       'l': p.likes.toList(),
+      'cm': p.cm,
       if (by != null) 'b': by,
     };
     if (p.img != null && File(p.img!).existsSync()) {
@@ -782,11 +1024,17 @@ class _HomeState extends State<Home> {
     if (a == me!.u) return;
     if (by != null ? by != u : (a != u || !following.contains(a))) return;
     final likes = Set<String>.from(h['l'] ?? []);
+    final cms = List<Map>.from((h['cm'] ?? []).map((e) => Map.from(e)));
     final old = posts.where((p) => p.i == h['i']).firstOrNull;
     if (old != null) {
-      setState(() => old.likes.addAll(likes));
+      setState(() {
+        old.likes.addAll(likes);
+        for (final x in cms) {
+          if (!old.cm.any((y) => y['ci'] == x['ci'])) old.cm.add(x);
+        }
+      });
     } else {
-      setState(() => posts.add(Post(h['i'], a, h['at'], t: h['t'], img: img, by: by, likes: likes)));
+      setState(() => posts.add(Post(h['i'], a, h['at'], t: h['t'], img: img, by: by, likes: likes, cm: cms)));
     }
     save();
   }
@@ -951,12 +1199,313 @@ class _HomeState extends State<Home> {
               label: Text('لايك${p.likes.isEmpty ? '' : ' (${p.likes.length})'}'),
             ),
             TextButton.icon(
+              onPressed: () => comments(p),
+              icon: const Icon(Icons.comment_outlined),
+              label: Text('تعليق${p.cm.isEmpty ? '' : ' (${p.cm.length})'}'),
+            ),
+            TextButton.icon(
               onPressed: () => share(p),
               icon: const Icon(Icons.share),
               label: const Text('share with friends'),
             ),
           ]),
         ]),
+      ),
+    );
+  }
+
+  // ---------- voice, game, backup, block ----------
+  Future<void> toggleRec() async {
+    if (cur == null) return;
+    if (!recording) {
+      if (!await rec.hasPermission()) return snack('اسمح بالميكروفون من إعدادات التطبيق');
+      final d = await getApplicationDocumentsDirectory();
+      final path = '${d.path}/voice_${DateTime.now().microsecondsSinceEpoch}.m4a';
+      await rec.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+      setState(() {
+        recording = true;
+        recAt = DateTime.now();
+      });
+    } else {
+      final path = await rec.stop();
+      final secs = DateTime.now().difference(recAt!).inSeconds;
+      setState(() => recording = false);
+      if (path != null && secs >= 1) post(cur!, aud: path);
+    }
+  }
+
+  Future<void> playVoice(Msg m) async {
+    try {
+      if (playing == m.i) {
+        await vp.stop();
+        setState(() => playing = null);
+        return;
+      }
+      await vp.stop();
+      await vp.play(DeviceFileSource(m.a!));
+      setState(() => playing = m.i);
+    } catch (_) {}
+  }
+
+  Widget voiceW(Msg m) => Row(mainAxisSize: MainAxisSize.min, children: [
+        IconButton(
+          icon: Icon(playing == m.i ? Icons.pause_circle : Icons.play_circle, size: 34),
+          onPressed: () => playVoice(m),
+        ),
+        const Text('رسالة صوتية'),
+      ]);
+
+  void markRead(String c) {
+    final un = msgs.where((m) => m.c == c && m.s != me!.u && m.st == 0).toList();
+    if (un.isEmpty) return;
+    for (final m in un) {
+      m.st = 2;
+    }
+    if (c.startsWith('p:')) {
+      final ids = un.map((m) => m.i).toList();
+      for (final id in targets(c)) {
+        sendJ(id, {'k': 'rd', 'ids': ids});
+      }
+    }
+    save();
+  }
+
+  void openGame() {
+    final u = cur!.substring(2);
+    final g = games[u];
+    if (g == null || g.win != null) {
+      startGame(u);
+    } else {
+      setState(() {
+        gameWith = u;
+        view = 'game';
+      });
+    }
+  }
+
+  void startGame(String u) {
+    final ids = who.entries.where((e) => e.value == u).map((e) => e.key).toList();
+    if (ids.isEmpty) return snack('${prof(u).n} مش متصل دلوقتي');
+    for (final id in ids) {
+      sendJ(id, {'k': 'xo', 'op': 'new'});
+    }
+    setState(() {
+      games[u] = XO('X');
+      gameWith = u;
+      view = 'game';
+    });
+  }
+
+  void xoRecv(String u, Map j) {
+    if (j['op'] == 'new') {
+      setState(() => games[u] = XO('O'));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${prof(u).n} بدأ لعبة إكس أو'),
+        action: SnackBarAction(
+          label: 'العب',
+          onPressed: () => setState(() {
+            gameWith = u;
+            view = 'game';
+          }),
+        ),
+      ));
+    } else if (j['op'] == 'mv') {
+      final g = games[u];
+      final i = j['i'];
+      if (g == null || i is! int || i < 0 || i > 8 || g.win != null || g.turn == g.my || g.b[i] != '') return;
+      setState(() {
+        g.b[i] = g.turn;
+        g.turn = g.turn == 'X' ? 'O' : 'X';
+      });
+    }
+  }
+
+  void xoMove(String u, int i) {
+    final g = games[u];
+    if (g == null || g.win != null || g.turn != g.my || g.b[i] != '') return;
+    setState(() {
+      g.b[i] = g.my;
+      g.turn = g.my == 'X' ? 'O' : 'X';
+    });
+    for (final e in who.entries.where((e) => e.value == u)) {
+      sendJ(e.key, {'k': 'xo', 'op': 'mv', 'i': i});
+    }
+  }
+
+  Widget game() {
+    final u = gameWith!;
+    final g = games[u]!;
+    final w = g.win;
+    final cs = Theme.of(context).colorScheme;
+    final status = w == 'D'
+        ? 'تعادل 🤝'
+        : (w != null ? (w == g.my ? 'كسبت 🎉' : 'خسرت 😅') : (g.turn == g.my ? 'دورك (${g.my})' : 'دور ${prof(u).n}'));
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Text(status, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 20),
+        AspectRatio(
+          aspectRatio: 1,
+          child: GridView.count(
+            crossAxisCount: 3,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              for (var i = 0; i < 9; i++)
+                GestureDetector(
+                  onTap: () => xoMove(u, i),
+                  child: Container(
+                    decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(12)),
+                    alignment: Alignment.center,
+                    child: Text(g.b[i],
+                        style: TextStyle(
+                            fontSize: 56,
+                            fontWeight: FontWeight.bold,
+                            color: g.b[i] == 'X' ? cs.primary : cs.tertiary)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (w != null) FilledButton(onPressed: () => startGame(u), child: const Text('العب تاني')),
+      ]),
+    );
+  }
+
+  Future<void> backup() async {
+    await save();
+    final txt = await (await store).readAsString();
+    final r = await FilePicker.platform.saveFile(
+        dialogTitle: 'احفظ النسخة الاحتياطية',
+        fileName: 'orx_backup.json',
+        bytes: Uint8List.fromList(utf8.encode(txt)));
+    snack(r == null ? 'اتلغت النسخة' : 'اتحفظت النسخة. خليها خاصة، فيها مفتاحك السري');
+  }
+
+  Future<void> restore() async {
+    final r = await FilePicker.platform.pickFiles(type: FileType.any);
+    final path = r?.files.single.path;
+    if (path == null) return;
+    try {
+      final txt = await File(path).readAsString();
+      if (jsonDecode(txt)['me'] == null) throw 'bad';
+      await (await store).writeAsString(txt);
+      setState(() {
+        contacts.clear();
+        groups.clear();
+        msgs.clear();
+        stories.clear();
+        posts.clear();
+        following.clear();
+        followers.clear();
+        certs.clear();
+        blocked.clear();
+        me = null;
+      });
+      await load();
+      snack('اتسترجعت النسخة');
+    } catch (_) {
+      snack('الملف مش نسخة صالحة');
+    }
+  }
+
+  void showBlocked() => showDialog(
+        context: context,
+        builder: (c) => StatefulBuilder(
+          builder: (c, up) => AlertDialog(
+            title: const Text('المحظورين'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: blocked.isEmpty
+                  ? const Text('مفيش حد محظور')
+                  : ListView(shrinkWrap: true, children: [
+                      for (final u in blocked.toList())
+                        ListTile(
+                          title: Text('${prof(u).n} (@$u)'),
+                          trailing: TextButton(
+                            onPressed: () {
+                              setState(() => blocked.remove(u));
+                              save();
+                              up(() {});
+                            },
+                            child: const Text('إلغاء الحظر'),
+                          ),
+                        ),
+                    ]),
+            ),
+          ),
+        ),
+      );
+
+  void likeStory(Story s) {
+    final on = !s.likes.contains(me!.u);
+    setState(() {
+      if (on) {
+        s.likes.add(me!.u);
+      } else {
+        s.likes.remove(me!.u);
+      }
+    });
+    save();
+    for (final e in who.entries.where((e) => e.value == s.from)) {
+      sendJ(e.key, {'k': 'sl', 'sid': s.id, 'on': on});
+    }
+  }
+
+  void comment(Post p, String t) {
+    final ci = '${me!.u}${DateTime.now().microsecondsSinceEpoch}';
+    final at = DateTime.now().millisecondsSinceEpoch;
+    setState(() => p.cm.add({'ci': ci, 'u': me!.u, 't': t, 'at': at}));
+    save();
+    for (final id in peers) {
+      sendJ(id, {'k': 'cm', 'p': p.i, 'ci': ci, 't': t, 'at': at});
+    }
+  }
+
+  Future<void> comments(Post p) async {
+    final t = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, up) => AlertDialog(
+          title: const Text('التعليقات'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Flexible(
+                child: p.cm.isEmpty
+                    ? const Text('لسه مفيش تعليقات')
+                    : ListView(shrinkWrap: true, children: [
+                        for (final x in p.cm)
+                          ListTile(
+                            dense: true,
+                            title: nm(x['u'], prof(x['u']).n, st: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Text('${x['t']}'),
+                          ),
+                      ]),
+              ),
+              TextField(
+                controller: t,
+                decoration: InputDecoration(
+                  hintText: 'اكتب تعليق',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: () {
+                      final s2 = t.text.trim();
+                      if (s2.isEmpty) return;
+                      comment(p, s2);
+                      t.clear();
+                      up(() {});
+                    },
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
       ),
     );
   }
@@ -1025,36 +1574,33 @@ class _HomeState extends State<Home> {
 
   // ---------- stories ----------
   Future<void> pushStory(String id, Story s) async {
+    if (!sentStory.add('${who[id]}|${s.id}')) return;
+    final au = s.audio != null && File(s.audio!).existsSync();
+    final h = {'sid': s.id, 'au': au, 't': s.text};
     if (s.img != null) {
-      await sendFile(id, {'k': 'f', 'w': 's'}, s.img!);
+      await sendFile(id, {'k': 'f', 'w': 's', ...h}, s.img!);
     } else {
-      await sendJ(id, {'k': 's', 't': s.text});
+      await sendJ(id, {'k': 's', ...h});
+    }
+    if (au) {
+      await sendFile(id, {'k': 'f', 'w': 'sa', 'sid': s.id, 'x': s.audio!.split('.').last}, s.audio!);
     }
   }
 
-  void addStory() => showModalBottomSheet(
-        context: context,
-        builder: (c) => SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            ListTile(
-              leading: const Icon(Icons.text_fields),
-              title: const Text('قصة نصية'),
-              onTap: () {
-                Navigator.pop(c);
-                textStory();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.image),
-              title: const Text('قصة بصورة'),
-              onTap: () {
-                Navigator.pop(c);
-                imgStory();
-              },
-            ),
-          ]),
-        ),
-      );
+  Future<(String, String)?> pickSong() async {
+    final r = await FilePicker.platform.pickFiles(type: FileType.audio);
+    final f = r?.files.single;
+    if (f == null || f.path == null) return null;
+    if (f.size > 15 * 1024 * 1024) {
+      snack('الأغنية كبيرة (أكتر من 15 ميجا)، اختار أصغر');
+      return null;
+    }
+    final d = await getApplicationDocumentsDirectory();
+    final ext = (f.extension ?? 'mp3').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    final n = '${d.path}/song_${DateTime.now().microsecondsSinceEpoch}.$ext';
+    await File(f.path!).copy(n);
+    return (n, f.name);
+  }
 
   void publish(Story s) {
     for (final id in peers) {
@@ -1064,27 +1610,58 @@ class _HomeState extends State<Home> {
     save();
   }
 
-  Future<void> textStory() async {
+  Future<void> addStory() async {
     final t = TextEditingController();
+    String? img, song, songName;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('قصة نصية'),
-        content: TextField(controller: t, maxLines: 4, maxLength: 200, autofocus: true),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('نشر')),
-        ],
+      builder: (c) => StatefulBuilder(
+        builder: (c, st) => AlertDialog(
+          title: const Text('ستوري جديد'),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                  controller: t,
+                  maxLines: 3,
+                  maxLength: 200,
+                  decoration: const InputDecoration(hintText: 'اكتب نص (أو ضيف صورة)')),
+              if (img != null)
+                ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File(img!), height: 100)),
+              TextButton.icon(
+                onPressed: () async {
+                  final f = await ImagePicker()
+                      .pickImage(source: ImageSource.gallery, maxWidth: 1080, imageQuality: 70);
+                  if (f == null) return;
+                  final k = await keep(f.path);
+                  st(() => img = k);
+                },
+                icon: const Icon(Icons.image),
+                label: Text(img == null ? 'إضافة صورة' : 'تغيير الصورة'),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  final r = await pickSong();
+                  if (r == null) return;
+                  st(() {
+                    song = r.$1;
+                    songName = r.$2;
+                  });
+                },
+                icon: const Icon(Icons.music_note),
+                label: Text(song == null ? 'إضافة أغنية من الموبايل' : songName ?? 'أغنية'),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('نشر')),
+          ],
+        ),
       ),
     );
     final txt = t.text.trim();
-    if (ok == true && txt.isNotEmpty) publish(Story(me!.u, text: txt));
-  }
-
-  Future<void> imgStory() async {
-    final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1080, imageQuality: 70);
-    if (f == null) return;
-    publish(Story(me!.u, img: await keep(f.path)));
+    if (ok != true || (txt.isEmpty && img == null)) return;
+    publish(Story(me!.u, text: txt.isEmpty ? null : txt, img: img, audio: song));
   }
 
   Widget ring(String label, Widget child, VoidCallback onTap, bool active) {
@@ -1126,7 +1703,7 @@ class _HomeState extends State<Home> {
               e.key == me!.u ? 'قصتي' : prof(e.key).n,
               av(prof(e.key).a),
               () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => StoryView(e.value, prof(e.key).n))),
+                  context, MaterialPageRoute(builder: (_) => StoryView(e.value, prof(e.key).n, me!.u, likeStory))),
               true,
             ),
         ],
@@ -1139,13 +1716,19 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext c) {
     if (me == null || editing) return setup();
     final owner = view == 'chat' && cur == 'g:${me!.u}';
+    final inChat = view == 'chat';
     return PopScope(
       canPop: view == 'home',
       onPopInvokedWithResult: (d, _) {
         if (!d) {
           setState(() {
-            view = 'home';
-            cur = null;
+            if (view == 'game') {
+              view = 'chat';
+            } else {
+              view = 'home';
+              cur = null;
+              searching = false;
+            }
           });
         }
       },
@@ -1157,15 +1740,25 @@ class _HomeState extends State<Home> {
                   ? const Text('المنشورات')
                   : view == 'near'
                       ? const Text('الأجهزة القريبة')
-                      : (cur!.startsWith('p:')
-                          ? Row(mainAxisSize: MainAxisSize.min, children: [
-                              avOn(cur!.substring(2), r: 16),
-                              const SizedBox(width: 8),
-                              nm(cur!.substring(2), chatTitle(cur!)),
-                            ])
-                          : Text(chatTitle(cur!))),
+                      : view == 'game'
+                          ? Text('إكس أو مع ${prof(gameWith!).n}')
+                          : (searching
+                              ? TextField(
+                                  controller: sCtl,
+                                  autofocus: true,
+                                  decoration:
+                                      const InputDecoration(hintText: 'ابحث في المحادثة', border: InputBorder.none),
+                                  onChanged: (_) => setState(() {}),
+                                )
+                              : (cur!.startsWith('p:')
+                                  ? Row(mainAxisSize: MainAxisSize.min, children: [
+                                      avOn(cur!.substring(2), r: 16),
+                                      const SizedBox(width: 8),
+                                      nm(cur!.substring(2), chatTitle(cur!)),
+                                    ])
+                                  : Text(chatTitle(cur!)))),
           actions: [
-            if (view == 'home')
+            if (view == 'home') ...[
               IconButton(
                 icon: av(me!.a, r: 14),
                 onPressed: () {
@@ -1175,13 +1768,38 @@ class _HomeState extends State<Home> {
                   setState(() => editing = true);
                 },
               ),
+              PopupMenuButton<String>(
+                onSelected: (v) {
+                  if (v == 'b') backup();
+                  if (v == 'r') restore();
+                  if (v == 'k') showBlocked();
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'b', child: Text('نسخة احتياطية')),
+                  PopupMenuItem(value: 'r', child: Text('استرجاع نسخة')),
+                  PopupMenuItem(value: 'k', child: Text('المحظورين')),
+                ],
+              ),
+            ],
+            if (inChat)
+              IconButton(
+                icon: Icon(searching ? Icons.close : Icons.search),
+                onPressed: () => setState(() {
+                  searching = !searching;
+                  sCtl.clear();
+                }),
+              ),
+            if (inChat && cur!.startsWith('p:'))
+              IconButton(icon: const Icon(Icons.sports_esports), onPressed: openGame),
             if (owner) IconButton(icon: const Icon(Icons.group_add), onPressed: manage),
           ],
         ),
-        body: view == 'home' ? home() : (view == 'feed' ? feed() : (view == 'near' ? near() : chat())),
+        body: view == 'home'
+            ? home()
+            : (view == 'feed' ? feed() : (view == 'near' ? near() : (view == 'game' ? game() : chat()))),
         floatingActionButton:
             view == 'feed' ? FloatingActionButton(onPressed: newPost, child: const Icon(Icons.add)) : null,
-        bottomNavigationBar: view == 'chat'
+        bottomNavigationBar: (view == 'chat' || view == 'game')
             ? null
             : NavigationBar(
                 selectedIndex: view == 'feed' ? 1 : (view == 'near' ? 2 : 0),
@@ -1198,15 +1816,22 @@ class _HomeState extends State<Home> {
 
   Widget tile(String c, String title, String? a, IconData i) {
     final last = msgs.where((m) => m.c == c).lastOrNull;
+    final unread = msgs.where((m) => m.c == c && m.s != me!.u && m.st == 0).length;
     return ListTile(
       leading: c.startsWith('p:') ? avOn(c.substring(2)) : av(a, icon: i),
       title: c.startsWith('p:') ? nm(c.substring(2), title) : Text(title),
       onLongPress: c.startsWith('p:') ? () => contactMenu(c.substring(2)) : null,
-      subtitle: Text(last == null ? '' : (last.t ?? '📷 صورة'), maxLines: 1, overflow: TextOverflow.ellipsis),
-      onTap: () => setState(() {
-        cur = c;
-        view = 'chat';
-      }),
+      subtitle: Text(last == null ? '' : (last.t ?? (last.a != null ? '🎤 رسالة صوتية' : '📷 صورة')),
+          maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: unread > 0 ? Badge(label: Text('$unread')) : null,
+      onTap: () {
+        markRead(c);
+        setState(() {
+          cur = c;
+          view = 'chat';
+          searching = false;
+        });
+      },
     );
   }
 
@@ -1222,7 +1847,7 @@ class _HomeState extends State<Home> {
                 onTap: newGroup,
               ),
             for (final g in groups.values) tile('g:${g.o}', g.n, null, Icons.group),
-            for (final p in contacts.values.where((p) => p.u != me!.u)) tile('p:${p.u}', p.n, p.a, Icons.person),
+            for (final p in contacts.values.where((p) => p.u != me!.u && !blocked.contains(p.u))) tile('p:${p.u}', p.n, p.a, Icons.person),
           ]),
         ),
       ]);
@@ -1259,7 +1884,8 @@ class _HomeState extends State<Home> {
       );
 
   Widget chat() {
-    final l = msgs.where((m) => m.c == cur).toList();
+    final q = sCtl.text.trim();
+    final l = msgs.where((m) => m.c == cur && (!searching || q.isEmpty || (m.t ?? '').contains(q))).toList();
     return Column(children: [
       Expanded(child: ListView(padding: const EdgeInsets.all(12), children: [for (final m in l) bubble(m)])),
       SafeArea(
@@ -1267,10 +1893,16 @@ class _HomeState extends State<Home> {
           padding: const EdgeInsets.all(8),
           child: Row(children: [
             IconButton(icon: const Icon(Icons.image), onPressed: sendImg),
+            IconButton(
+              icon: Icon(recording ? Icons.stop_circle : Icons.mic, color: recording ? Colors.red : null),
+              onPressed: toggleRec,
+            ),
             Expanded(
-              child: TextField(
-                  controller: input,
-                  decoration: const InputDecoration(hintText: 'اكتب رسالة', border: OutlineInputBorder())),
+              child: recording
+                  ? const Text('🔴 بيسجّل... اضغط ⏹ للإرسال')
+                  : TextField(
+                      controller: input,
+                      decoration: const InputDecoration(hintText: 'اكتب رسالة', border: OutlineInputBorder())),
             ),
             IconButton(icon: const Icon(Icons.send), onPressed: sendText),
           ]),
@@ -1299,9 +1931,18 @@ class _HomeState extends State<Home> {
             if (!mine && cur!.startsWith('g:'))
               nm(m.s, prof(m.s).n,
                   st: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: cs.primary)),
-            m.img != null
-                ? ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(File(m.img!)))
-                : Text(m.t ?? '', style: const TextStyle(fontSize: 16)),
+            if (m.a != null)
+              voiceW(m)
+            else if (m.img != null)
+              ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(File(m.img!)))
+            else
+              Text(m.t ?? '', style: const TextStyle(fontSize: 16)),
+            if (mine)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(m.st >= 1 ? Icons.done_all : Icons.done,
+                    size: 14, color: m.st >= 2 ? Colors.lightBlueAccent : Colors.grey),
+              ),
           ],
         ),
       ),
