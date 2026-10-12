@@ -84,6 +84,17 @@ class Story {
       Story(j['f'], text: j['t'], img: j['i'], at: DateTime.fromMillisecondsSinceEpoch(j['a']));
 }
 
+class Post {
+  final String i, a;
+  final String? t, img, by;
+  final int at;
+  final Set<String> likes;
+  Post(this.i, this.a, this.at, {this.t, this.img, this.by, Set<String>? likes}) : likes = likes ?? {};
+  Map toJson() => {'i': i, 'a': a, 'at': at, 't': t, 'g': img, 'b': by, 'l': likes.toList()};
+  factory Post.fromJson(Map j) => Post(j['i'], j['a'], j['at'],
+      t: j['t'], img: j['g'], by: j['b'], likes: Set<String>.from(j['l'] ?? []));
+}
+
 class StoryView extends StatelessWidget {
   final List<Story> l;
   final String title;
@@ -131,6 +142,8 @@ class _HomeState extends State<Home> {
   final pending = <int, Map>{};
   final msgs = <Msg>[], stories = <Story>[];
   final certs = <String, Map>{};
+  final posts = <Post>[];
+  final following = <String>{}, followers = <String>{};
   final tok = <String, String>{};
   final chain = <String, Future<void>>{};
 
@@ -163,6 +176,11 @@ class _HomeState extends State<Home> {
         for (final e in (j['certs'] as List? ?? [])) {
           certs[e['p']] = Map.from(e);
         }
+        for (final e in (j['posts'] as List? ?? [])) {
+          posts.add(Post.fromJson(e));
+        }
+        following.addAll(List<String>.from(j['fing'] ?? []));
+        followers.addAll(List<String>.from(j['fers'] ?? []));
         stories.addAll((j['stories'] as List).map((e) => Story.fromJson(e)).where((s) => s.live));
       });
       if (me != null && me!.sd == null) {
@@ -181,6 +199,9 @@ class _HomeState extends State<Home> {
         'contacts': contacts.values.map((p) => p.toJson()).toList(),
         'groups': groups.values.map((g) => g.toJson()).toList(),
         'certs': certs.values.toList(),
+        'posts': posts.map((p) => p.toJson()).toList(),
+        'fing': following.toList(),
+        'fers': followers.toList(),
         'msgs': msgs.map((m) => m.toJson()).toList(),
         'stories': stories.where((s) => s.live).map((s) => s.toJson()).toList(),
       }));
@@ -323,6 +344,14 @@ class _HomeState extends State<Home> {
         context: context,
         builder: (c) => SafeArea(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ListTile(
+              leading: Icon(following.contains(u) ? Icons.person_remove_alt_1 : Icons.person_add_alt_1),
+              title: Text(following.contains(u) ? 'إلغاء المتابعة' : 'متابعة'),
+              onTap: () {
+                Navigator.pop(c);
+                toggleFollow(u);
+              },
+            ),
             if (isOwner && role(u) != 'o')
               ListTile(
                 leading: const Icon(Icons.verified),
@@ -353,6 +382,8 @@ class _HomeState extends State<Home> {
               : null,
         ),
         body: ListView(padding: const EdgeInsets.all(20), children: [
+          Center(child: logo()),
+          const SizedBox(height: 16),
           Center(child: GestureDetector(onTap: pickAv, child: av(tmpAv, r: 52, icon: Icons.add_a_photo))),
           const SizedBox(height: 20),
           TextField(
@@ -369,6 +400,19 @@ class _HomeState extends State<Home> {
               controller: kCtl,
               decoration: const InputDecoration(
                   labelText: 'مفتاح المالك (للمالك فقط)', border: OutlineInputBorder())),
+          if (editing) ...[
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: Text('المتابعين (${followers.length})'),
+              onTap: () => listUsers('المتابعين', followers),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_add_alt_1),
+              title: Text('بتتابع (${following.length})'),
+              onTap: () => listUsers('بتتابع', following),
+            ),
+          ],
           const SizedBox(height: 20),
           FilledButton(onPressed: saveProfile, child: const Text('حفظ')),
         ]),
@@ -532,6 +576,10 @@ class _HomeState extends State<Home> {
       setState(() => contacts[u] = Prof(u, j['n'], a: old?.a, k: pk));
       save();
       sendCerts(id);
+      if (following.contains(u)) sendJ(id, flMsg(u, true));
+      for (final p in posts.where((p) => p.a == u && p.likes.contains(me!.u))) {
+        sendJ(id, {'k': 'lk', 'p': p.i, 'on': true});
+      }
       if (groups[me!.u]?.m.contains(u) ?? false) sendGroup(id);
       for (final s in stories.where((s) => s.live && s.from == me!.u)) {
         pushStory(id, s);
@@ -546,6 +594,35 @@ class _HomeState extends State<Home> {
       recv(id, j, t: j['t']);
     } else if (k == 'c') {
       await mergeCerts(j['l']);
+    } else if (k == 'po') {
+      recvPost(id, j);
+    } else if (k == 'lk') {
+      final pp = posts.where((p) => p.i == j['p']).firstOrNull;
+      if (pp != null) {
+        setState(() {
+          if (j['on'] == true) {
+            pp.likes.add(u);
+          } else {
+            pp.likes.remove(u);
+          }
+        });
+        save();
+      }
+    } else if (k == 'fl') {
+      setState(() {
+        if (j['on'] == true) {
+          followers.add(u);
+        } else {
+          followers.remove(u);
+        }
+      });
+      save();
+      if (j['on'] == true) {
+        final have = (j['h'] as List? ?? []);
+        for (final p in posts.where((p) => p.a == me!.u && !have.contains(p.i)).toList().reversed.take(30)) {
+          sendPost(id, p);
+        }
+      }
     } else if (k == 's') {
       setState(() => stories.add(Story(u, text: j['t'])));
       save();
@@ -603,8 +680,285 @@ class _HomeState extends State<Home> {
       setState(() => stories.add(Story(u, img: path)));
     } else if (h['w'] == 'm') {
       recv(id, h, img: path);
+    } else if (h['w'] == 'po') {
+      recvPost(id, h, img: path);
     }
     save();
+  }
+
+  // ---------- posts, follow, presence ----------
+  bool online(String u) => who.containsValue(u);
+
+  Widget avOn(String u, {double r = 22}) => Stack(clipBehavior: Clip.none, children: [
+        av(prof(u).a, r: r),
+        if (online(u))
+          PositionedDirectional(
+            bottom: 0,
+            end: 0,
+            child: Container(
+              width: r * .6,
+              height: r * .6,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2ECC71),
+                shape: BoxShape.circle,
+                border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
+              ),
+            ),
+          ),
+      ]);
+
+  Widget logo() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: const Text('orx',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: 1)),
+      );
+
+  String ago(int ms) {
+    final d = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ms));
+    if (d.inMinutes < 1) return 'الآن';
+    if (d.inHours < 1) return 'من ${d.inMinutes} د';
+    if (d.inDays < 1) return 'من ${d.inHours} س';
+    return 'من ${d.inDays} يوم';
+  }
+
+  Map flMsg(String u, bool on) =>
+      {'k': 'fl', 'on': on, 'h': posts.where((p) => p.a == u).map((p) => p.i).toList()};
+
+  void toggleFollow(String u) {
+    final on = !following.contains(u);
+    setState(() {
+      if (on) {
+        following.add(u);
+      } else {
+        following.remove(u);
+      }
+    });
+    save();
+    for (final e in who.entries) {
+      if (e.value == u) sendJ(e.key, flMsg(u, on));
+    }
+  }
+
+  void listUsers(String title, Set<String> s) => showDialog(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(title),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: s.isEmpty
+                ? const Text('لسه مفيش')
+                : ListView(shrinkWrap: true, children: [
+                    for (final u in s) ListTile(leading: avOn(u), title: nm(u, '${prof(u).n} (@$u)')),
+                  ]),
+          ),
+        ),
+      );
+
+  void sendPost(String id, Post p, {String? by}) {
+    final h = {
+      'i': p.i,
+      'a': p.a,
+      'at': p.at,
+      't': p.t,
+      'l': p.likes.toList(),
+      if (by != null) 'b': by,
+    };
+    if (p.img != null && File(p.img!).existsSync()) {
+      sendFile(id, {'k': 'f', 'w': 'po', ...h}, p.img!);
+    } else {
+      sendJ(id, {'k': 'po', ...h});
+    }
+  }
+
+  void recvPost(String id, Map h, {String? img}) {
+    final u = who[id];
+    if (u == null) return;
+    final a = h['a'] as String, by = h['b'] as String?;
+    if (a == me!.u) return;
+    if (by != null ? by != u : (a != u || !following.contains(a))) return;
+    final likes = Set<String>.from(h['l'] ?? []);
+    final old = posts.where((p) => p.i == h['i']).firstOrNull;
+    if (old != null) {
+      setState(() => old.likes.addAll(likes));
+    } else {
+      setState(() => posts.add(Post(h['i'], a, h['at'], t: h['t'], img: img, by: by, likes: likes)));
+    }
+    save();
+  }
+
+  void like(Post p) {
+    final on = !p.likes.contains(me!.u);
+    setState(() {
+      if (on) {
+        p.likes.add(me!.u);
+      } else {
+        p.likes.remove(me!.u);
+      }
+    });
+    save();
+    for (final id in peers) {
+      sendJ(id, {'k': 'lk', 'p': p.i, 'on': on});
+    }
+  }
+
+  Future<void> share(Post p) async {
+    final people = contacts.values.where((c) => c.u != me!.u).toList();
+    final sel = <String>{};
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, st) => AlertDialog(
+          title: const Text('share with friends'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: people.isEmpty
+                ? const Text('اتصل بأصحابك الأول من "الأجهزة القريبة"')
+                : ListView(shrinkWrap: true, children: [
+                    for (final c2 in people)
+                      CheckboxListTile(
+                        value: sel.contains(c2.u),
+                        title: Text('${c2.n} (@${c2.u})'),
+                        secondary: online(c2.u) ? const Icon(Icons.circle, size: 12, color: Colors.green) : null,
+                        onChanged: (v) => st(() {
+                          if (v == true) {
+                            sel.add(c2.u);
+                          } else {
+                            sel.remove(c2.u);
+                          }
+                        }),
+                      ),
+                  ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('إرسال')),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    var n = 0;
+    for (final e in who.entries) {
+      if (sel.contains(e.value)) {
+        sendPost(e.key, p, by: me!.u);
+        n++;
+      }
+    }
+    snack(n == 0 ? 'مفيش حد من اللي اخترتهم متصل دلوقتي' : 'اتبعت لـ $n');
+  }
+
+  Future<void> newPost() async {
+    final t = TextEditingController();
+    String? img;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, st) => AlertDialog(
+          title: const Text('منشور جديد'),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                  controller: t,
+                  maxLines: 4,
+                  maxLength: 500,
+                  decoration: const InputDecoration(hintText: 'بتفكر في إيه؟')),
+              if (img != null)
+                ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File(img!), height: 120)),
+              TextButton.icon(
+                onPressed: () async {
+                  final f = await ImagePicker()
+                      .pickImage(source: ImageSource.gallery, maxWidth: 1080, imageQuality: 70);
+                  if (f == null) return;
+                  final k = await keep(f.path);
+                  st(() => img = k);
+                },
+                icon: const Icon(Icons.image),
+                label: const Text('إضافة صورة'),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('نشر')),
+          ],
+        ),
+      ),
+    );
+    final txt = t.text.trim();
+    if (ok != true || (txt.isEmpty && img == null)) return;
+    final p = Post('${me!.u}${DateTime.now().microsecondsSinceEpoch}', me!.u,
+        DateTime.now().millisecondsSinceEpoch,
+        t: txt.isEmpty ? null : txt, img: img);
+    setState(() => posts.add(p));
+    save();
+    for (final e in who.entries) {
+      if (followers.contains(e.value)) sendPost(e.key, p);
+    }
+  }
+
+  Widget feed() {
+    final l = posts.where((p) => p.a == me!.u || following.contains(p.a) || p.by != null).toList()
+      ..sort((a, b) => b.at.compareTo(a.at));
+    if (l.isEmpty) {
+      return const Center(
+          child: Text('مفيش منشورات لسه.\nانشر حاجة أو تابع حد من الشاشة الرئيسية.', textAlign: TextAlign.center));
+    }
+    return ListView(padding: const EdgeInsets.all(8), children: [for (final p in l) postCard(p)]);
+  }
+
+  Widget postCard(Post p) {
+    final liked = p.likes.contains(me!.u);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            avOn(p.a, r: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                nm(p.a, prof(p.a).n, st: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(p.by != null ? 'شاركه ${prof(p.by!).n} • ${ago(p.at)}' : ago(p.at),
+                    style: const TextStyle(fontSize: 11)),
+              ]),
+            ),
+            if (p.a == me!.u)
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () {
+                  setState(() => posts.remove(p));
+                  save();
+                },
+              ),
+          ]),
+          if (p.t != null)
+            Padding(padding: const EdgeInsets.only(top: 8), child: Text(p.t!, style: const TextStyle(fontSize: 16))),
+          if (p.img != null && File(p.img!).existsSync())
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(File(p.img!))),
+            ),
+          const SizedBox(height: 4),
+          Wrap(children: [
+            TextButton.icon(
+              onPressed: () => like(p),
+              icon: Icon(liked ? Icons.favorite : Icons.favorite_border, color: liked ? Colors.red : null),
+              label: Text('لايك${p.likes.isEmpty ? '' : ' (${p.likes.length})'}'),
+            ),
+            TextButton.icon(
+              onPressed: () => share(p),
+              icon: const Icon(Icons.share),
+              label: const Text('share with friends'),
+            ),
+          ]),
+        ]),
+      ),
+    );
   }
 
   // ---------- groups ----------
@@ -798,12 +1152,18 @@ class _HomeState extends State<Home> {
       child: Scaffold(
         appBar: AppBar(
           title: view == 'home'
-              ? nm(me!.u, 'orx chat')
-              : view == 'near'
-                  ? const Text('الأجهزة القريبة')
-                  : (cur!.startsWith('p:')
-                      ? nm(cur!.substring(2), chatTitle(cur!))
-                      : Text(chatTitle(cur!))),
+              ? Row(mainAxisSize: MainAxisSize.min, children: [logo(), badge(me!.u)])
+              : view == 'feed'
+                  ? const Text('المنشورات')
+                  : view == 'near'
+                      ? const Text('الأجهزة القريبة')
+                      : (cur!.startsWith('p:')
+                          ? Row(mainAxisSize: MainAxisSize.min, children: [
+                              avOn(cur!.substring(2), r: 16),
+                              const SizedBox(width: 8),
+                              nm(cur!.substring(2), chatTitle(cur!)),
+                            ])
+                          : Text(chatTitle(cur!))),
           actions: [
             if (view == 'home')
               IconButton(
@@ -818,27 +1178,31 @@ class _HomeState extends State<Home> {
             if (owner) IconButton(icon: const Icon(Icons.group_add), onPressed: manage),
           ],
         ),
-        body: view == 'home' ? home() : (view == 'near' ? near() : chat()),
-        floatingActionButton: view == 'home'
-            ? FloatingActionButton.extended(
-                onPressed: () => setState(() => view = 'near'),
-                icon: const Icon(Icons.bluetooth_searching),
-                label: const Text('الأجهزة القريبة'),
-              )
-            : null,
+        body: view == 'home' ? home() : (view == 'feed' ? feed() : (view == 'near' ? near() : chat())),
+        floatingActionButton:
+            view == 'feed' ? FloatingActionButton(onPressed: newPost, child: const Icon(Icons.add)) : null,
+        bottomNavigationBar: view == 'chat'
+            ? null
+            : NavigationBar(
+                selectedIndex: view == 'feed' ? 1 : (view == 'near' ? 2 : 0),
+                onDestinationSelected: (i) => setState(() => view = const ['home', 'feed', 'near'][i]),
+                destinations: const [
+                  NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'المحادثات'),
+                  NavigationDestination(icon: Icon(Icons.dynamic_feed), label: 'المنشورات'),
+                  NavigationDestination(icon: Icon(Icons.bluetooth_searching), label: 'الأجهزة القريبة'),
+                ],
+              ),
       ),
     );
   }
 
   Widget tile(String c, String title, String? a, IconData i) {
     final last = msgs.where((m) => m.c == c).lastOrNull;
-    final online = c.startsWith('p:') && who.containsValue(c.substring(2));
     return ListTile(
-      leading: av(a, icon: i),
+      leading: c.startsWith('p:') ? avOn(c.substring(2)) : av(a, icon: i),
       title: c.startsWith('p:') ? nm(c.substring(2), title) : Text(title),
       onLongPress: c.startsWith('p:') ? () => contactMenu(c.substring(2)) : null,
       subtitle: Text(last == null ? '' : (last.t ?? '📷 صورة'), maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: online ? const Icon(Icons.circle, size: 12, color: Colors.green) : null,
       onTap: () => setState(() {
         cur = c;
         view = 'chat';
@@ -876,7 +1240,7 @@ class _HomeState extends State<Home> {
             child: ListView(children: [
               for (final u in who.values)
                 ListTile(
-                  leading: const Icon(Icons.check_circle, color: Colors.green),
+                  leading: avOn(u),
                   title: nm(u, '${prof(u).n} (@$u)'),
                   subtitle: const Text('متصل'),
                 ),
