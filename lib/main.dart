@@ -4,7 +4,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart' show AudioPlayer, DeviceFileSource;
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'package:flutter/widgets.dart' as fw show Text;
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +13,7 @@ import 'package:nearby_connections/nearby_connections.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart' show AudioEncoder, AudioRecorder, RecordConfig;
+import 'package:video_player/video_player.dart';
 import 'package:cryptography/cryptography.dart'
     show AesGcm, Ed25519, Hkdf, Hmac, KeyPairType, SecretBox, SecretKey, Sha256, Signature, SimpleKeyPair, SimplePublicKey, X25519;
 
@@ -38,6 +40,308 @@ const accents = [
 final accentIdx = ValueNotifier<int>(0);
 final themeMode = ValueNotifier<ThemeMode>(ThemeMode.system);
 
+const kContactEmail = 'orxchat.support@gmail.com';
+final langCode = ValueNotifier<String>('ar');
+bool get isEn => langCode.value == 'en';
+
+const _en = <String, String>{
+  'دردشة بدون إنترنت': 'Chat without internet',
+  'مفيش اتصال بالإنترنت': 'No internet connection',
+  'فعّل Anonymous sign-ins من إعدادات Supabase': 'Enable Anonymous sign-ins in the Supabase settings',
+  'انتهت جلسة الإنترنت': 'Internet session expired',
+  'الآن': 'Now',
+  'مجموعة': 'Group',
+  'اكتب اسمك، واسم مستخدم 3 حروف أو أكتر (إنجليزي/أرقام)': 'Enter your name and a username of 3+ characters (English letters/numbers)',
+  'مفتاح المالك غلط': 'Wrong owner key',
+  'الشخص ده لازم يتصل بيك الأول': 'This person must connect with you first',
+  'الملف الشخصي': 'Profile',
+  'إلغاء التوثيق': 'Remove verification',
+  'توثيق الحساب': 'Verify account',
+  'حذف الجهة': 'Delete contact',
+  'تعديل الملف الشخصي': 'Edit profile',
+  'أهلاً بيك في ORX': 'Welcome to ORX',
+  'دردشة بدون إنترنت مع الناس القريبين منك': 'Chat without internet with people near you',
+  'الاسم': 'Name',
+  'اسم المستخدم': 'Username',
+  'نبذة عنك': 'About you',
+  'مفتاح المالك (للمالك فقط)': 'Owner key (owner only)',
+  'حفظ': 'Save',
+  'شغّل البلوتوث والموقع (GPS) وجرّب تاني': 'Turn on Bluetooth and location (GPS) and try again',
+  'رفض': 'Decline',
+  'قبول': 'Accept',
+  'تعذر الاتصال': "Couldn't connect",
+  'مفيش حد متصل من المحادثة دي دلوقتي': 'No one from this chat is connected right now',
+  'اسم مجموعتك': 'Your group name',
+  'إلغاء': 'Cancel',
+  'إنشاء': 'Create',
+  'أعضاء المجموعة': 'Group members',
+  'اتصل بأشخاص الأول من "الأجهزة القريبة" وهيظهروا هنا': 'Connect with people first from "Nearby" and they will show up here',
+  'قصة نصية': 'Text story',
+  'قصة بصورة': 'Photo story',
+  'نشر': 'Post',
+  'إضافة': 'Add',
+  'قصتي': 'My story',
+  'متصل الآن': 'Online now',
+  'المحادثات': 'Chats',
+  'المنشورات': 'Posts',
+  'القريبة': 'Nearby',
+  'حسابي': 'Me',
+  'المظهر': 'Settings',
+  'إضافة صديق': 'Add friend',
+  'ابدأ المحادثة': 'Start a conversation',
+  'ابحث في المحادثات': 'Search chats',
+  'إنشاء مجموعتي': 'Create my group',
+  'أنت فقط اللي بتضيف الأعضاء': 'Only you can add members',
+  'مفيش محادثات لسه': 'No chats yet',
+  'مفيش نتائج': 'No results',
+  'دوّر على أجهزة قريبة منك وابدأ أول محادثة': 'Look for nearby devices and start your first chat',
+  'جرّب كلمة تانية': 'Try another word',
+  'الأجهزة القريبة': 'Nearby devices',
+  'اتصل بأصحابك القريبين منك من غير إنترنت': 'Connect with friends near you, no internet needed',
+  'ابدأ البحث': 'Start searching',
+  'جاري البحث عن أجهزة قريبة...': 'Searching for nearby devices...',
+  'متصل': 'Connected',
+  'أجهزة متاحة': 'Available devices',
+  'اتصال': 'Connect',
+  'مفيش أجهزة لسه': 'No devices yet',
+  'اتأكد إن التاني فاتح ORX وعامل بحث': 'Make sure the other person has ORX open and is searching',
+  'تعذر رفع الملف': "Couldn't upload the file",
+  'الإنترنت لسه بيتجهز، جرّب بعد ثواني': 'The internet connection is still getting ready, try again in a few seconds',
+  'ابحث باسم المستخدم': 'Search by username',
+  'اسمح للتطبيق باستخدام المايك': 'Allow the app to use the microphone',
+  'تعذر بدء التسجيل': "Couldn't start recording",
+  'نسخ': 'Copy',
+  'منشور جديد': 'New post',
+  'أضف صورة (اختياري)': 'Add a photo (optional)',
+  'اكتب تعليق...': 'Write a comment...',
+  'تم النشر': 'Posted',
+  'تمت المشاركة': 'Shared',
+  'مشاركة في محادثة': 'Share in a chat',
+  'مفيش محادثات تشارك فيها لسه': 'No chats to share in yet',
+  'لا أحد هنا لسه': 'No one here yet',
+  'لون التطبيق': 'App color',
+  'الوضع': 'Mode',
+  'تلقائي': 'Auto',
+  'فاتح': 'Light',
+  'داكن': 'Dark',
+  'الصورة بتتحمل لما تتصل بصاحبها': 'The picture loads when you connect with its owner',
+  'اكتب منشور جديد...': 'Write a new post...',
+  'اقتراحات للمتابعة': 'Suggested to follow',
+  'مفيش منشورات لسه': 'No posts yet',
+  'تابع ناس من ملفاتهم الشخصية أو انشر أول منشور ليك': 'Follow people from their profiles or publish your first post',
+  'منشورات': 'Posts',
+  'متابعون': 'Followers',
+  'المتابعون': 'Followers',
+  'يتابع': 'Following',
+  'متصل بالإنترنت': 'Online',
+  'جاري الاتصال بالإنترنت...': 'Connecting to the internet...',
+  'تعديل الملف': 'Edit profile',
+  'إلغاء المتابعة': 'Unfollow',
+  'متابعة': 'Follow',
+  'رسالة': 'Message',
+  'مفيش منشورات': 'No posts',
+  'انشر أول منشور ليك': 'Publish your first post',
+  'لسه ما نشرش حاجة': "Hasn't posted anything yet",
+  'جاري التسجيل...': 'Recording...',
+  'اكتب رسالة': 'Write a message',
+  'ابعت أول رسالة 👋': 'Send the first message 👋',
+  '🎤 رسالة صوتية': '🎤 Voice message',
+  '📷 صورة': '📷 Photo',
+  'اللغة': 'Language',
+  'سياسة الخصوصية': 'Privacy policy',
+  'بالمتابعة أنت توافق على سياسة الخصوصية': 'By continuing you agree to the Privacy Policy',
+  'ريل جديد': 'New reel',
+  'ريلز': 'Reels',
+  'تصوير فيديو': 'Record video',
+  'من المعرض': 'From gallery',
+  'الفيديو كبير، الحد الأقصى 45 ميجا': 'The video is too large, max 45 MB',
+  'تعذر رفع الفيديو': "Couldn't upload the video",
+  'تم نشر الريل': 'Reel posted',
+  'تعذر نشر الريل': "Couldn't post the reel",
+  'مفيش ريلز لسه': 'No reels yet',
+  'انشر أول ريل': 'Post the first reel',
+  'أصدقائي': 'Friends',
+  'اكتشاف': 'Explore',
+  'مفيش حاجة للاكتشاف لسه': 'Nothing to explore yet',
+  'تعذر النشر على الإنترنت، اتحفظ عندك وهيوصل للقريبين منك':
+      "Couldn't post online. Saved on your phone and will reach people near you",
+  'تعذر نشر القصة على الإنترنت، اتحفظت للقريبين منك': "Couldn't post the story online. Saved for people near you",
+  'تعذر تسجيل الإعجاب': "Couldn't register the like",
+  'الدردشة عبر الإنترنت': 'Chat over the internet',
+  'لو قفلتها، الرسائل بتتبعت بس لما تكونوا قريبين من بعض (بلوتوث)':
+      'If off, messages are sent only when you are near each other (Bluetooth)',
+  'بحث عن أجهزة قريبة': 'Find nearby devices',
+  'الفيديو مش شغال': "The video can't be played",
+};
+
+final _enPat = <(RegExp, String Function(RegExpMatch))>[
+  (RegExp(r'^منذ (\d+) د$'), (m) => '${m[1]}m ago'),
+  (RegExp(r'^منذ (\d+) س$'), (m) => '${m[1]}h ago'),
+  (RegExp(r'^منذ (\d+) يوم$'), (m) => '${m[1]}d ago'),
+  (RegExp(r'^(\d+) أعضاء$'), (m) => '${m[1]} members'),
+  (RegExp(r'^@(.+) مش متاح على الإنترنت$'), (m) => "@${m[1]} isn't available online"),
+  (RegExp(r'^اتصال مع @(.+)$'), (m) => 'Connect with @${m[1]}'),
+  (RegExp(r'^اسم المستخدم @(.+) مستخدم على الإنترنت من حساب تاني$'),
+      (m) => 'The username @${m[1]} is already taken online by another account'),
+  (RegExp(r'^تحذير: @(.+) بيستخدم مفتاح مختلف عن اللي نعرفه، اتجاهل$'),
+      (m) => 'Warning: @${m[1]} is using a different key than the one we know. Ignored'),
+  (RegExp(r'^تحذير: @(.+) بيستخدم مفتاح مختلف عن اللي نعرفه$'),
+      (m) => 'Warning: @${m[1]} is using a different key than the one we know'),
+  (RegExp(r'^تعذر إضافة @(.+)$'), (m) => "Couldn't add @${m[1]}"),
+  (RegExp(r'^تعذر التسجيل على الإنترنت \((.+)\)$'), (m) => "Couldn't register online (${m[1]})"),
+  (RegExp(r'^تعذر تسجيل الدخول للسيرفر \((.+)\)$'), (m) => "Couldn't sign in to the server (${m[1]})"),
+  (RegExp(r'^رمز التأكيد: (.+)\nلازم يكون نفس الرمز عند الطرف التاني$', dotAll: true),
+      (m) => 'Confirmation code: ${m[1]}\nBoth devices must show the same code'),
+  (RegExp(r'^أنت: (.*)$', dotAll: true), (m) => 'You: ${T(m[1]!)}'),
+];
+
+String T(String s) {
+  if (!isEn) return s;
+  final d = _en[s];
+  if (d != null) return d;
+  for (final r in _enPat) {
+    final m = r.$1.firstMatch(s);
+    if (m != null) return r.$2(m);
+  }
+  return s;
+}
+
+class Text extends StatelessWidget {
+  final String data;
+  final TextStyle? style;
+  final TextAlign? textAlign;
+  final int? maxLines;
+  final TextOverflow? overflow;
+  final bool? softWrap;
+  final TextDirection? textDirection;
+  const Text(this.data,
+      {super.key, this.style, this.textAlign, this.maxLines, this.overflow, this.softWrap, this.textDirection});
+  @override
+  Widget build(BuildContext c) {
+    Localizations.localeOf(c);
+    return fw.Text(T(data),
+        style: style,
+        textAlign: textAlign,
+        maxLines: maxLines,
+        overflow: overflow,
+        softWrap: softWrap,
+        textDirection: textDirection);
+  }
+}
+
+const _policyAr = """سياسة الخصوصية لتطبيق ORX
+آخر تحديث: 13 أكتوبر 2026
+
+1) من نحن
+ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال القريب، وعبر الإنترنت. توضح هذه السياسة المعلومات التي يتعامل معها التطبيق. للتواصل: $kContactEmail
+
+2) المعلومات التي تقدمها
+• اسم المستخدم والاسم وصورة الملف ونبذة قصيرة.
+• الرسائل والصور والتسجيلات الصوتية والمنشورات والريلز (مقاطع الفيديو القصيرة) والقصص التي ترسلها.
+• مفاتيح تشفير تُنشأ على جهازك لإثبات هويتك وتشفير رسائلك.
+
+3) كيف تنتقل الرسائل
+• الوضع القريب: تنتقل الرسائل مباشرة بين الجهازين عبر البلوتوث أو الواي فاي المباشر (Google Nearby Connections) ولا تمر عبر خوادمنا.
+• وضع الإنترنت: تُشفَّر الرسائل على جهازك قبل رفعها. يخزن الخادم (المستضاف لدى Supabase) الرسالة المشفرة موجهة إلى المعرّف المجهول للمستلم إلى أن يستلمها جهازه. وتُشفَّر الصور والتسجيلات والملفات المرسلة في المحادثات قبل الرفع. لا نستطيع قراءة محتوى رسائلك.
+• ما يمكن للخادم رؤيته: المعرّف المجهول للحساب، واسم المرسل، ومعرّف المستلم، ووقت وحجم الرسائل.
+
+4) الملف العام والمحتوى العام
+عند استخدام ميزات الإنترنت، تُخزَّن بيانات ملفك (اسم المستخدم، الاسم، النبذة، الصورة، المفاتيح العامة) على الخادم ويمكن لأي شخص العثور عليها بالبحث عن اسم المستخدم. لا تضع معلومات حساسة في ملفك. المنشورات والريلز والقصص وصورها وفيديوهاتها والإعجابات محتوى عام: تُخزَّن على الخادم دون تشفير من طرف إلى طرف ويمكن لمستخدمي التطبيق الآخرين رؤيتها. لا تنشر ما تريد إبقاءه خاصا.
+
+5) المعلومات المخزنة على جهازك
+تُخزَّن المحادثات وجهات الاتصال والمنشورات والقصص والإعدادات ومفاتيحك الخاصة في مساحة التطبيق الخاصة على هاتفك. عند حذف التطبيق أو مسح بياناته تُحذف من جهازك ولا نستطيع استرجاعها.
+
+6) الأذونات
+• البلوتوث والأجهزة القريبة والموقع: يطلبها أندرويد للعثور على الأجهزة القريبة. لا نجمع موقعك ولا نخزنه.
+• الميكروفون: فقط لتسجيل الرسائل الصوتية التي تختار إرسالها.
+• الصور والملفات: فقط الصور التي تختارها بنفسك.
+• الإنترنت: لاستخدام وضع الإنترنت.
+
+7) ما لا نفعله
+لا توجد إعلانات، ولا أدوات تحليل أو تتبع، ولا نبيع بياناتك ولا نشاركها مع المعلنين.
+
+8) مزودو الخدمة
+تستضيف Supabase قاعدة البيانات والمصادقة المجهولة وتخزين الملفات، وتنطبق سياسة الخصوصية الخاصة بها على معالجتها.
+
+9) الاحتفاظ والحذف
+قد تبقى الرسائل والملفات المشفرة على الخادم إلى أن تُحذف، وقد نحذف القديم منها دوريا. لطلب حذف بياناتك المخزنة على الخادم (الملف العام وأي عناصر محفوظة) راسلنا على البريد أعلاه مع اسم المستخدم.
+
+10) الأمان
+نستخدم تشفيرا من طرف إلى طرف لرسائل الإنترنت. لا يوجد نظام آمن بالكامل، فحافظ على حماية هاتفك.
+
+11) الأطفال
+التطبيق غير موجه للأطفال دون 13 عاما (أو الحد الأدنى للسن في بلدك).
+
+12) التغييرات
+قد نحدّث هذه السياسة، وسيتغير تاريخ آخر تحديث أعلاه.
+
+13) التواصل
+$kContactEmail""";
+
+const _policyEn = """ORX Privacy Policy
+Last updated: October 13, 2026
+
+1) Who we are
+ORX is a chat app that works over Bluetooth / nearby connections and over the internet. This policy explains what information the app handles. Contact: $kContactEmail
+
+2) Information you provide
+• Your username, display name, profile photo and short bio.
+• Messages, photos, voice messages, posts, reels (short videos) and stories you send.
+• Cryptographic keys generated on your device to prove your identity and encrypt your messages.
+
+3) How messages travel
+• Nearby mode: messages go directly between the two devices over Bluetooth or Wi-Fi Direct (Google Nearby Connections). They do not pass through our servers.
+• Internet mode: messages are encrypted on your device before they are uploaded. Our server (hosted by Supabase) stores the encrypted message addressed to the recipient's anonymous ID until their device collects it. Photos, voice messages and files sent in chats are encrypted before upload. We cannot read the content of your messages.
+• What the server can see: the anonymous account ID, the sender's username, the recipient's ID, and the time and size of messages.
+
+4) Public profile and public content
+When you use internet features, your profile data (username, display name, bio, photo, public keys) is stored on the server and can be found by anyone who searches for your username. Do not put sensitive information in your profile. Posts, reels, stories, their photos and videos, and likes are public content: they are stored on the server without end-to-end encryption and can be seen by other users of the app. Do not publish anything you want to keep private.
+
+5) Information stored on your device
+Chats, contacts, posts, stories, settings and your private keys are kept in the app's private storage on your phone. If you uninstall the app or clear its data they are deleted from your device, and we cannot restore them.
+
+6) Permissions
+• Bluetooth / Nearby devices and Location: required by Android to find nearby devices. We do not collect or store your location.
+• Microphone: only to record voice messages that you choose to send.
+• Photos and files: only the pictures you choose yourself.
+• Internet: to use internet mode.
+
+7) What we do not do
+No ads, no analytics or tracking tools, and we do not sell or share your data with advertisers.
+
+8) Service providers
+Supabase hosts the database, anonymous authentication and file storage. Its own privacy policy applies to its processing.
+
+9) Retention and deletion
+Encrypted messages and files may stay on the server until they are deleted, and we may delete old ones periodically. To request deletion of your server-side data (public profile and any stored items), email us at the address above with your username.
+
+10) Security
+We use end-to-end encryption for internet messages. No system is perfectly secure, so keep your phone protected.
+
+11) Children
+The app is not directed at children under 13 (or the minimum age in your country).
+
+12) Changes
+We may update this policy; the date above will change.
+
+13) Contact
+$kContactEmail""";
+
+class PolicyPage extends StatelessWidget {
+  const PolicyPage({super.key});
+  @override
+  Widget build(BuildContext c) {
+    Localizations.localeOf(c);
+    return Scaffold(
+      appBar: AppBar(title: const Text('سياسة الخصوصية')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: SelectableText(isEn ? _policyEn : _policyAr, style: const TextStyle(fontSize: 15, height: 1.6)),
+      ),
+    );
+  }
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -47,6 +351,8 @@ Future<void> main() async {
       final j = jsonDecode(await f.readAsString());
       final a = j['accent'];
       if (a is int && a >= 0 && a < accents.length) accentIdx.value = a;
+      final lg = j['lang'];
+      if (lg == 'ar' || lg == 'en') langCode.value = lg;
       final t = j['tmode'];
       if (t is int && t >= 0 && t < ThemeMode.values.length) themeMode.value = ThemeMode.values[t];
     }
@@ -78,8 +384,8 @@ InputDecoration fld(BuildContext c, {String? label, String? hint, IconData? icon
         borderSide: col == null ? BorderSide.none : BorderSide(color: col, width: 1.6),
       );
   return InputDecoration(
-    labelText: label,
-    hintText: hint,
+    labelText: label == null ? null : T(label),
+    hintText: hint == null ? null : T(hint),
     prefixIcon: icon == null ? null : Icon(icon),
     filled: true,
     fillColor: cs.surfaceContainerHigh,
@@ -93,24 +399,27 @@ InputDecoration fld(BuildContext c, {String? label, String? hint, IconData? icon
 class App extends StatelessWidget {
   const App({super.key});
   @override
-  Widget build(BuildContext c) => ValueListenableBuilder<int>(
-        valueListenable: accentIdx,
-        builder: (c, ai, _) => ValueListenableBuilder<ThemeMode>(
-          valueListenable: themeMode,
-          builder: (c, tm, _) => MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'ORX',
-            locale: const Locale('ar'),
-            supportedLocales: const [Locale('ar')],
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            themeMode: tm,
-            theme: orxTheme(Brightness.light, accents[ai]),
-            darkTheme: orxTheme(Brightness.dark, accents[ai]),
-            home: const Splash(),
+  Widget build(BuildContext c) => ValueListenableBuilder<String>(
+        valueListenable: langCode,
+        builder: (c, lg, _) => ValueListenableBuilder<int>(
+          valueListenable: accentIdx,
+          builder: (c, ai, _) => ValueListenableBuilder<ThemeMode>(
+            valueListenable: themeMode,
+            builder: (c, tm, _) => MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'ORX',
+              locale: Locale(lg),
+              supportedLocales: const [Locale('ar'), Locale('en')],
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              themeMode: tm,
+              theme: orxTheme(Brightness.light, accents[ai]),
+              darkTheme: orxTheme(Brightness.dark, accents[ai]),
+              home: const Splash(),
+            ),
           ),
         ),
       );
@@ -236,6 +545,22 @@ class Cloud {
     }
   }
 
+  Future<bool> uploadFile(String path, File f, String type) async {
+    try {
+      final r = await hc.openUrl('POST', Uri.parse('$sbUrl/storage/v1/object/orx/$path'));
+      r.headers.set('apikey', sbKey);
+      r.headers.set('Authorization', 'Bearer $at');
+      r.headers.set('Content-Type', type);
+      r.contentLength = await f.length();
+      await r.addStream(f.openRead());
+      final res = await r.close();
+      await res.drain();
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<Uint8List?> download(String path) async {
     try {
       final r = await hc.getUrl(Uri.parse('$sbUrl/storage/v1/object/public/orx/$path'));
@@ -301,6 +626,71 @@ class Cloud {
   }
 }
 
+class ReelPlayer extends StatefulWidget {
+  final String url;
+  final bool active;
+  const ReelPlayer(this.url, this.active, {super.key});
+  @override
+  State<ReelPlayer> createState() => _ReelPlayerState();
+}
+
+class _ReelPlayerState extends State<ReelPlayer> {
+  late final VideoPlayerController c = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+  bool ready = false, failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    c.initialize().then((_) {
+      if (!mounted) return;
+      c.setLooping(true);
+      setState(() => ready = true);
+      if (widget.active) c.play();
+    }).catchError((_) {
+      if (mounted) setState(() => failed = true);
+    });
+  }
+
+  @override
+  void didUpdateWidget(ReelPlayer o) {
+    super.didUpdateWidget(o);
+    if (!ready) return;
+    if (widget.active) {
+      c.play();
+    } else {
+      c.pause();
+    }
+  }
+
+  @override
+  void dispose() {
+    c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (failed) return const Center(child: Icon(Icons.error_outline, color: Colors.white54, size: 48));
+    if (!ready) return const Center(child: CircularProgressIndicator());
+    return GestureDetector(
+      onTap: () => setState(() {
+        if (c.value.isPlaying) {
+          c.pause();
+        } else {
+          c.play();
+        }
+      }),
+      child: SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(width: c.value.size.width, height: c.value.size.height, child: VideoPlayer(c)),
+        ),
+      ),
+    );
+  }
+}
+
 class Prof {
   final String u, n;
   final String? a, k, sd, bio;
@@ -331,10 +721,11 @@ class Msg {
 class Post {
   final String id, from;
   String? text, img, ip;
-  bool im;
+  bool im, srv;
+  String kind;
   final DateTime at;
   Set<String> likes;
-  Post(this.id, this.from, {this.text, this.img, this.ip, this.im = false, DateTime? at, Set<String>? likes})
+  Post(this.id, this.from, {this.text, this.img, this.ip, this.im = false, this.srv = false, this.kind = 'post', DateTime? at, Set<String>? likes})
       : at = at ?? DateTime.now(),
         likes = likes ?? {};
   Color get color =>
@@ -346,6 +737,8 @@ class Post {
         'g': img,
         'm': im,
         'ip': ip,
+        'kd': kind,
+        'sv': srv,
         'a': at.millisecondsSinceEpoch,
         'l': likes.toList(),
       };
@@ -354,6 +747,8 @@ class Post {
       img: j['g'],
       im: j['m'] == true,
       ip: j['ip'],
+      kind: (j['kd'] ?? 'post') as String,
+      srv: j['sv'] == true,
       at: DateTime.fromMillisecondsSinceEpoch(j['a']),
       likes: Set<String>.from((j['l'] as List?) ?? []));
 }
@@ -368,15 +763,15 @@ String ago(DateTime d) {
 
 class Story {
   final String from;
-  final String? text, img;
+  final String? text, img, sid;
   final DateTime at;
-  Story(this.from, {this.text, this.img, DateTime? at}) : at = at ?? DateTime.now();
+  Story(this.from, {this.text, this.img, this.sid, DateTime? at}) : at = at ?? DateTime.now();
   bool get live => DateTime.now().difference(at).inHours < 24;
   Color get color =>
       storyColors[(text ?? '').codeUnits.fold(0, (a, b) => a + b) % storyColors.length];
-  Map toJson() => {'f': from, 't': text, 'i': img, 'a': at.millisecondsSinceEpoch};
+  Map toJson() => {'f': from, 't': text, 'i': img, 'x': sid, 'a': at.millisecondsSinceEpoch};
   factory Story.fromJson(Map j) =>
-      Story(j['f'], text: j['t'], img: j['i'], at: DateTime.fromMillisecondsSinceEpoch(j['a']));
+      Story(j['f'], text: j['t'], img: j['i'], sid: j['x'], at: DateTime.fromMillisecondsSinceEpoch(j['a']));
 }
 
 class StoryView extends StatelessWidget {
@@ -397,7 +792,7 @@ class StoryView extends StatelessWidget {
                       color: s.color,
                       alignment: Alignment.center,
                       padding: const EdgeInsets.all(24),
-                      child: Text(s.text!,
+                      child: fw.Text(s.text!,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                               color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
@@ -472,6 +867,7 @@ class _HomeState extends State<Home> {
         for (final e in ((j['stats'] as Map?) ?? {}).entries) {
           stats[e.key] = List<int>.from(e.value);
         }
+        chatNet = j['chatNet'] != false;
         final cj = j['cloud'];
         if (cj is Map) {
           cloud.rt = cj['rt'] as String?;
@@ -507,6 +903,8 @@ class _HomeState extends State<Home> {
         'stats': stats,
         'accent': accentIdx.value,
         'tmode': themeMode.value.index,
+        'chatNet': chatNet,
+        'lang': langCode.value,
         'cloud': {'rt': cloud.rt, 'uid': cloud.uid, 'avSrc': cavSrc, 'av': cav, 'last': lastMsgId},
       }));
     } catch (_) {}
@@ -605,7 +1003,7 @@ class _HomeState extends State<Home> {
 
   Widget nm(String u, String text, {TextStyle? st}) => Row(
       mainAxisSize: MainAxisSize.min,
-      children: [Flexible(child: Text(text, style: st, overflow: TextOverflow.ellipsis)), badge(u)]);
+      children: [Flexible(child: fw.Text(text, style: st, overflow: TextOverflow.ellipsis)), badge(u)]);
 
   Future<void> hello(String id) async {
     sendJ(id, {
@@ -687,6 +1085,8 @@ class _HomeState extends State<Home> {
         ),
       );
 
+  void openPolicy() => Navigator.push(context, MaterialPageRoute(builder: (_) => const PolicyPage()));
+
   Widget setup() {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
@@ -701,6 +1101,17 @@ class _HomeState extends State<Home> {
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(24, 8, 24, 24), children: [
         if (!editing) ...[
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: () {
+                langCode.value = isEn ? 'ar' : 'en';
+                save();
+              },
+              icon: const Icon(Icons.language),
+              label: fw.Text(isEn ? 'العربية' : 'English'),
+            ),
+          ),
           const SizedBox(height: 8),
           Text('أهلاً بيك في ORX',
               textAlign: TextAlign.center,
@@ -757,6 +1168,8 @@ class _HomeState extends State<Home> {
           onPressed: saveProfile,
           child: const Text('حفظ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         ),
+        if (!editing)
+          TextButton(onPressed: openPolicy, child: const Text('بالمتابعة أنت توافق على سياسة الخصوصية')),
       ]),
     );
   }
@@ -865,7 +1278,7 @@ class _HomeState extends State<Home> {
         by[e.value] = e.key;
       }
     }
-    if (netReady) {
+    if (netReady && chatNet) {
       for (final u in ok) {
         if (u != me!.u && !by.containsKey(u) && contacts.containsKey(u) && 'net:$u' != skip) {
           by[u] = 'net:$u';
@@ -934,7 +1347,7 @@ class _HomeState extends State<Home> {
       save();
       sendCerts(id);
       if (groups[me!.u]?.m.contains(u) ?? false) sendGroup(id);
-      for (final s in stories.where((s) => s.live && s.from == me!.u)) {
+      for (final s in stories.where((s) => s.live && s.from == me!.u && s.sid == null)) {
         pushStory(id, s);
       }
       syncSocial(id, u);
@@ -1176,28 +1589,26 @@ class _HomeState extends State<Home> {
       );
 
   Future<void> publish(Story s) async {
+    if (netReady && await cloud.ensure()) {
+      final sid = '${me!.u}${DateTime.now().microsecondsSinceEpoch}';
+      String? media;
+      var ok = true;
+      if (s.img != null) {
+        media = 's/${cloud.uid}_${DateTime.now().microsecondsSinceEpoch}.jpg';
+        ok = await cloud.upload(media, await File(s.img!).readAsBytes(), 'image/jpeg');
+      }
+      if (ok && await srvInsert('stories', {'id': sid, 'author': me!.u, 'body': s.text, 'media': media})) {
+        setState(() => stories.add(Story(me!.u, text: s.text, img: s.img, sid: sid, at: s.at)));
+        save();
+        return;
+      }
+      snack('تعذر نشر القصة على الإنترنت، اتحفظت للقريبين منك');
+    }
     for (final id in peers) {
       pushStory(id, s);
     }
     setState(() => stories.add(s));
     save();
-    if (!netReady) return;
-    Map? m;
-    if (s.img != null) {
-      if (await cloud.ensure()) {
-        final pth = 's/${cloud.uid}_${DateTime.now().microsecondsSinceEpoch}.jpg';
-        if (await cloud.upload(pth, await File(s.img!).readAsBytes(), 'image/jpeg')) {
-          m = {'k': 's', 'ip': pth};
-        }
-      }
-    } else {
-      m = {'k': 's', 't': s.text};
-    }
-    if (m != null) {
-      for (final u in followers.toList()) {
-        if (!isNear(u)) sendUser(u, m);
-      }
-    }
   }
 
   Future<void> textStory() async {
@@ -1306,6 +1717,8 @@ class _HomeState extends State<Home> {
   void dispose() {
     recTimer?.cancel();
     poll?.cancel();
+    socialTimer?.cancel();
+    reelCtl.dispose();
     rec.dispose();
     player.dispose();
     super.dispose();
@@ -1342,7 +1755,7 @@ class _HomeState extends State<Home> {
     final c = cur!;
     const bold = TextStyle(fontWeight: FontWeight.w700, fontSize: 17);
     final online = c.startsWith('p:') && who.containsValue(c.substring(2));
-    final title = c.startsWith('p:') ? nm(c.substring(2), chatTitle(c), st: bold) : Text(chatTitle(c), style: bold);
+    final title = c.startsWith('p:') ? nm(c.substring(2), chatTitle(c), st: bold) : fw.Text(chatTitle(c), style: bold);
     String? sub;
     if (online) {
       sub = 'متصل الآن';
@@ -1363,11 +1776,14 @@ class _HomeState extends State<Home> {
     );
   }
 
-  void openProf(String u) => setState(() {
-        if (view != 'profile') back = view;
-        view = 'profile';
-        profU = u;
-      });
+  void openProf(String u) {
+    setState(() {
+      if (view != 'profile') back = view;
+      view = 'profile';
+      profU = u;
+    });
+    fetchUser(u);
+  }
 
   void goBack() => setState(() {
         if (view == 'profile' && back != 'profile') {
@@ -1395,31 +1811,37 @@ class _HomeState extends State<Home> {
             backgroundColor: Colors.transparent,
             surfaceTintColor: Colors.transparent,
             indicatorColor: cs.primaryContainer,
-            selectedIndex: view == 'feed' ? 1 : (view == 'near' ? 2 : (view == 'profile' ? 3 : 0)),
-            onDestinationSelected: (i) => setState(() {
-              back = 'home';
-              if (i == 3) {
-                view = 'profile';
-                profU = me!.u;
-              } else {
-                view = const ['home', 'feed', 'near'][i];
-              }
-            }),
-            destinations: const [
+            selectedIndex: view == 'feed' ? 1 : (view == 'reels' ? 2 : (view == 'profile' ? 3 : 0)),
+            onDestinationSelected: (i) {
+              setState(() {
+                back = 'home';
+                if (i == 3) {
+                  view = 'profile';
+                  profU = me!.u;
+                } else {
+                  view = const ['home', 'feed', 'reels'][i];
+                }
+              });
+              if (i == 1 || i == 2) pullSocial();
+              if (i == 3) fetchUser(me!.u);
+            },
+            destinations: [
               NavigationDestination(
-                  icon: Icon(Icons.chat_bubble_outline),
-                  selectedIcon: Icon(Icons.chat_bubble),
-                  label: 'المحادثات'),
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  selectedIcon: const Icon(Icons.chat_bubble),
+                  label: T('المحادثات')),
               NavigationDestination(
-                  icon: Icon(Icons.grid_view_outlined),
-                  selectedIcon: Icon(Icons.grid_view_rounded),
-                  label: 'المنشورات'),
+                  icon: const Icon(Icons.grid_view_outlined),
+                  selectedIcon: const Icon(Icons.grid_view_rounded),
+                  label: T('المنشورات')),
               NavigationDestination(
-                  icon: Icon(Icons.bluetooth_searching),
-                  selectedIcon: Icon(Icons.bluetooth_connected),
-                  label: 'القريبة'),
+                  icon: const Icon(Icons.smart_display_outlined),
+                  selectedIcon: const Icon(Icons.smart_display),
+                  label: T('ريلز')),
               NavigationDestination(
-                  icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حسابي'),
+                  icon: const Icon(Icons.person_outline),
+                  selectedIcon: const Icon(Icons.person),
+                  label: T('حسابي')),
             ],
           ),
         ),
@@ -1429,6 +1851,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext c) {
+    Localizations.localeOf(c);
     if (me == null || editing) return setup();
     final cs = Theme.of(c).colorScheme;
     final inChat = view == 'chat';
@@ -1450,7 +1873,7 @@ class _HomeState extends State<Home> {
               : (otherProf
                   ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: goBack)
                   : IconButton(
-                      tooltip: 'المظهر', icon: const Icon(Icons.palette_outlined), onPressed: appearance)),
+                      tooltip: T('المظهر'), icon: const Icon(Icons.palette_outlined), onPressed: appearance)),
           title: inChat
               ? chatHead()
               : (otherProf
@@ -1459,19 +1882,26 @@ class _HomeState extends State<Home> {
           actions: [
             if (view == 'home')
               IconButton(
-                  tooltip: 'إضافة صديق',
+                  tooltip: T('بحث عن أجهزة قريبة'),
+                  icon: const Icon(Icons.bluetooth_searching),
+                  onPressed: () => setState(() => view = 'near')),
+            if (view == 'home')
+              IconButton(
+                  tooltip: T('إضافة صديق'),
                   icon: const Icon(Icons.person_add_alt_1_outlined),
                   onPressed: findFriend),
             if (owner)
               IconButton(
-                  tooltip: 'أعضاء المجموعة', icon: const Icon(Icons.group_add_outlined), onPressed: manage),
+                  tooltip: T('أعضاء المجموعة'), icon: const Icon(Icons.group_add_outlined), onPressed: manage),
           ],
         ),
         body: view == 'home'
             ? home()
             : (view == 'feed'
                 ? feed()
-                : (view == 'near' ? near() : (view == 'profile' ? profileView(profU) : chat()))),
+                : (view == 'reels'
+                    ? reelsView()
+                    : (view == 'near' ? near() : (view == 'profile' ? profileView(profU) : chat())))),
         bottomNavigationBar: (inChat || otherProf) ? null : navBar(),
       ),
     );
@@ -1503,7 +1933,9 @@ class _HomeState extends State<Home> {
     final last = msgs.where((m) => m.c == c).lastOrNull;
     final online = c.startsWith('p:') && who.containsValue(c.substring(2));
     const bold = TextStyle(fontWeight: FontWeight.w700, fontSize: 16);
-    final sub = last == null ? 'ابدأ المحادثة' : '${last.s == me!.u ? 'أنت: ' : ''}${last.t ?? (last.aud != null ? '🎤 رسالة صوتية' : '📷 صورة')}';
+    final sub = last == null
+        ? T('ابدأ المحادثة')
+        : '${last.s == me!.u ? (isEn ? 'You: ' : 'أنت: ') : ''}${last.t ?? (last.aud != null ? T('🎤 رسالة صوتية') : T('📷 صورة'))}';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: Material(
@@ -1539,9 +1971,9 @@ class _HomeState extends State<Home> {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  c.startsWith('p:') ? nm(c.substring(2), title, st: bold) : Text(title, style: bold),
+                  c.startsWith('p:') ? nm(c.substring(2), title, st: bold) : fw.Text(title, style: bold),
                   const SizedBox(height: 3),
-                  Text(sub,
+                  fw.Text(sub,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: cs.onSurfaceVariant)),
@@ -1871,6 +2303,9 @@ class _HomeState extends State<Home> {
     poll?.cancel();
     poll = Timer.periodic(const Duration(seconds: 4), (_) => pollNet());
     pollNet();
+    socialTimer?.cancel();
+    socialTimer = Timer.periodic(const Duration(seconds: 45), (_) => pullSocial());
+    pullSocial();
   }
 
   Future<void> cloudSend(String u, Map j) async {
@@ -2034,6 +2469,315 @@ class _HomeState extends State<Home> {
         },
       ),
     );
+  }
+
+  // ---------- internet: public posts, reels, stories ----------
+  final explore = <Post>[], reelsList = <Post>[];
+  final userPosts = <String, List<Post>>{};
+  bool chatNet = true, uploading = false, exploreTab = false, socialBusy = false;
+  int reelIdx = 0;
+  PageController reelCtl = PageController();
+  Timer? socialTimer;
+
+  String pubUrl(String p) => '$sbUrl/storage/v1/object/public/orx/$p';
+
+  Future<bool> srvInsert(String table, Map row) async {
+    final r = await cloud.rest('POST', '/rest/v1/$table', headers: {'Prefer': 'return=minimal'}, body: row);
+    return r.$1 == 201;
+  }
+
+  Post? rowToPost(Map r) {
+    try {
+      final kind = (r['kind'] ?? 'post') as String;
+      final media = r['media'] as String?;
+      return Post(r['id'] as String, r['author'] as String,
+          text: r['body'] as String?,
+          ip: media,
+          kind: kind,
+          srv: true,
+          im: kind == 'post' && media != null,
+          at: DateTime.parse(r['created_at'] as String).toLocal());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void mergePost(Post p) {
+    final ex = posts.where((x) => x.id == p.id).firstOrNull;
+    if (ex == null) {
+      posts.add(p);
+    } else {
+      ex.srv = true;
+      ex.ip = p.ip;
+    }
+  }
+
+  Future<void> syncLikes(List<Post> l) async {
+    if (l.isEmpty) return;
+    final ids = {for (final p in l) p.id}.toList();
+    final r = await cloud.rest('GET', '/rest/v1/likes?post_id=in.(${ids.join(',')})&select=post_id,u&limit=5000');
+    if (r.$1 != 200 || r.$2 is! List) return;
+    final m = <String, Set<String>>{};
+    for (final e in (r.$2 as List)) {
+      (m[e['post_id'] as String] ??= {}).add(e['u'] as String);
+    }
+    for (final p in l) {
+      p.likes = m[p.id] ?? <String>{};
+      if (p.likes.contains(me!.u)) {
+        myLikes.add(p.id);
+      } else {
+        myLikes.remove(p.id);
+      }
+    }
+  }
+
+  Future<void> pullSocial() async {
+    if (!netReady || me == null || socialBusy) return;
+    socialBusy = true;
+    try {
+      if (!await cloud.ensure()) return;
+      bool mf(String a) => a == me!.u || following.contains(a);
+      final r = await cloud.rest('GET', '/rest/v1/posts?select=*&kind=eq.post&order=created_at.desc&limit=80');
+      final rr = await cloud.rest('GET', '/rest/v1/posts?select=*&kind=eq.reel&order=created_at.desc&limit=30');
+      if (r.$1 == 200 && r.$2 is List) {
+        final rows = r.$2 as List;
+        final ex = <Post>[];
+        final ids = <String>{};
+        DateTime oldest = DateTime.fromMillisecondsSinceEpoch(0);
+        for (final row in rows) {
+          final p = rowToPost(Map.from(row as Map));
+          if (p == null) continue;
+          ids.add(p.id);
+          oldest = p.at;
+          if (mf(p.from)) {
+            mergePost(p);
+          } else {
+            ex.add(p);
+          }
+        }
+        if (rows.length < 80) oldest = DateTime.fromMillisecondsSinceEpoch(0);
+        posts.removeWhere((p) => p.srv && p.kind == 'post' && !ids.contains(p.id) && !p.at.isBefore(oldest));
+        explore
+          ..clear()
+          ..addAll(ex);
+      }
+      if (rr.$1 == 200 && rr.$2 is List) {
+        final l = <Post>[];
+        for (final row in rr.$2 as List) {
+          final p = rowToPost(Map.from(row as Map));
+          if (p != null) l.add(p);
+        }
+        reelsList
+          ..clear()
+          ..addAll(l);
+      }
+      await syncLikes(<Post>[...posts.where((p) => p.srv), ...explore, ...reelsList]);
+
+      final since = DateTime.now().toUtc().subtract(const Duration(hours: 24)).toIso8601String();
+      final rs = await cloud.rest('GET',
+          '/rest/v1/stories?select=*&created_at=gt.${Uri.encodeComponent(since)}&order=created_at.asc&limit=100');
+      if (rs.$1 == 200 && rs.$2 is List) {
+        final dir = await getApplicationDocumentsDirectory();
+        for (final row in rs.$2 as List) {
+          final m = Map.from(row as Map);
+          final a = m['author'] as String;
+          final sid = m['id'] as String;
+          if (!mf(a) || stories.any((s) => s.sid == sid)) continue;
+          final media = m['media'] as String?;
+          String? pth;
+          if (media != null) {
+            final b = await cloud.download(media);
+            if (b == null) continue;
+            pth = '${dir.path}/st_$sid.jpg';
+            await File(pth).writeAsBytes(b);
+          }
+          stories.add(Story(a,
+              text: m['body'] as String?,
+              img: pth,
+              sid: sid,
+              at: DateTime.parse(m['created_at'] as String).toLocal()));
+        }
+        stories.removeWhere((s) => !s.live);
+      }
+      if (mounted) setState(() {});
+      save();
+    } catch (_) {
+    } finally {
+      socialBusy = false;
+    }
+  }
+
+  Future<void> fetchUser(String u) async {
+    if (!netReady || !await cloud.ensure()) return;
+    final r = await cloud.rest(
+        'GET', '/rest/v1/posts?select=*&author=eq.${Uri.encodeComponent(u)}&order=created_at.desc&limit=60');
+    if (r.$1 != 200 || r.$2 is! List) return;
+    final l = <Post>[];
+    for (final row in r.$2 as List) {
+      final p = rowToPost(Map.from(row as Map));
+      if (p != null) l.add(p);
+    }
+    await syncLikes(l);
+    if (mounted) setState(() => userPosts[u] = l);
+  }
+
+  void openReels(Post x) {
+    var i = reelsList.indexWhere((p) => p.id == x.id);
+    if (i < 0) {
+      reelsList.insert(0, x);
+      i = 0;
+    }
+    reelCtl.dispose();
+    reelCtl = PageController(initialPage: i);
+    setState(() {
+      reelIdx = i;
+      view = 'reels';
+    });
+  }
+
+  Future<void> newReel() async {
+    if (!netReady) return snack(netMsg.isEmpty ? 'الإنترنت لسه بيتجهز، جرّب بعد ثواني' : netMsg);
+    final src = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.videocam_outlined),
+            title: const Text('تصوير فيديو'),
+            onTap: () => Navigator.pop(c, ImageSource.camera),
+          ),
+          ListTile(
+            leading: const Icon(Icons.video_library_outlined),
+            title: const Text('من المعرض'),
+            onTap: () => Navigator.pop(c, ImageSource.gallery),
+          ),
+        ]),
+      ),
+    );
+    if (src == null) return;
+    final f = await ImagePicker().pickVideo(source: src, maxDuration: const Duration(seconds: 60));
+    if (f == null) return;
+    final file = File(f.path);
+    if (await file.length() > 45 * 1024 * 1024) return snack('الفيديو كبير، الحد الأقصى 45 ميجا');
+    if (!mounted) return;
+    final t = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('ريل جديد'),
+        content: TextField(controller: t, maxLength: 200, decoration: InputDecoration(hintText: T('اكتب تعليق...'))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('نشر')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => uploading = true);
+    try {
+      if (!await cloud.ensure()) return;
+      final id = '${me!.u}${DateTime.now().microsecondsSinceEpoch}';
+      final path = 'r/${cloud.uid}_${DateTime.now().microsecondsSinceEpoch}.mp4';
+      if (!await cloud.uploadFile(path, file, 'video/mp4')) return snack('تعذر رفع الفيديو');
+      final body = t.text.trim();
+      if (await srvInsert('posts', {'id': id, 'author': me!.u, 'kind': 'reel', 'body': body.isEmpty ? null : body, 'media': path})) {
+        snack('تم نشر الريل');
+        await pullSocial();
+      } else {
+        snack('تعذر نشر الريل');
+      }
+    } finally {
+      if (mounted) setState(() => uploading = false);
+    }
+  }
+
+  Widget reelPage(Post p, bool active) {
+    final pr = prof(p.from);
+    final liked = myLikes.contains(p.id);
+    final isFol = following.contains(p.from);
+    final cap = (p.text ?? '').trim();
+    const white = TextStyle(color: Colors.white, fontWeight: FontWeight.w600);
+    return Container(
+      color: Colors.black,
+      child: Stack(fit: StackFit.expand, children: [
+        ReelPlayer(pubUrl(p.ip ?? ''), active && view == 'reels', key: ValueKey(p.id)),
+        PositionedDirectional(
+          start: 16,
+          end: 84,
+          bottom: 24,
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            GestureDetector(
+              onTap: () => openProf(p.from),
+              child: Row(children: [
+                av(pr.a, r: 18),
+                const SizedBox(width: 8),
+                Flexible(child: fw.Text(pr.n, style: white, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                if (p.from != me!.u) ...[
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white70),
+                        visualDensity: VisualDensity.compact),
+                    onPressed: () => toggleFollow(p.from),
+                    child: fw.Text(T(isFol ? 'إلغاء المتابعة' : 'متابعة')),
+                  ),
+                ],
+              ]),
+            ),
+            if (cap.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              fw.Text(cap, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white)),
+            ],
+          ]),
+        ),
+        PositionedDirectional(
+          end: 8,
+          bottom: 24,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            IconButton(
+              icon: Icon(liked ? Icons.favorite : Icons.favorite_border, color: liked ? Colors.red : Colors.white, size: 32),
+              onPressed: () => toggleLike(p),
+            ),
+            fw.Text('${p.likes.length}', style: white),
+            const SizedBox(height: 8),
+            IconButton(icon: const Icon(Icons.share_outlined, color: Colors.white, size: 30), onPressed: () => sharePost(p)),
+            if (p.from == me!.u)
+              IconButton(icon: const Icon(Icons.delete_outline, color: Colors.white, size: 30), onPressed: () => delPost(p, false)),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget reelsView() {
+    if (reelsList.isEmpty) {
+      return empty(Icons.smart_display_outlined, 'مفيش ريلز لسه', 'انشر أول ريل',
+          action: FilledButton.icon(
+              onPressed: uploading ? null : newReel,
+              icon: const Icon(Icons.video_call_outlined),
+              label: const Text('ريل جديد')));
+    }
+    if (reelIdx >= reelsList.length) reelIdx = 0;
+    return Stack(children: [
+      PageView.builder(
+        controller: reelCtl,
+        scrollDirection: Axis.vertical,
+        itemCount: reelsList.length,
+        onPageChanged: (i) => setState(() => reelIdx = i),
+        itemBuilder: (c, i) => reelPage(reelsList[i], i == reelIdx),
+      ),
+      PositionedDirectional(
+        top: 8,
+        end: 12,
+        child: FilledButton.tonalIcon(
+          onPressed: uploading ? null : newReel,
+          icon: const Icon(Icons.video_call_outlined),
+          label: const Text('ريل جديد'),
+        ),
+      ),
+      if (uploading) const Positioned(top: 0, left: 0, right: 0, child: LinearProgressIndicator()),
+    ]);
   }
 
   // ---------- voice ----------
@@ -2263,7 +3007,21 @@ class _HomeState extends State<Home> {
       }
     });
     save();
-    if (p.from != me!.u) sendUser(p.from, {'k': 'pl', 'i': p.id, 'v': v});
+    if (p.srv) {
+      srvLike(p, v);
+    } else if (p.from != me!.u) {
+      sendUser(p.from, {'k': 'pl', 'i': p.id, 'v': v});
+    }
+  }
+
+  Future<void> srvLike(Post p, bool v) async {
+    if (!await cloud.ensure()) return;
+    final r = v
+        ? await cloud.rest('POST', '/rest/v1/likes',
+            headers: {'Prefer': 'return=minimal,resolution=ignore-duplicates'},
+            body: {'post_id': p.id, 'u': me!.u})
+        : await cloud.rest('DELETE', '/rest/v1/likes?post_id=eq.${p.id}&u=eq.${me!.u}');
+    if (r.$1 < 200 || r.$1 >= 300) snack('تعذر تسجيل الإعجاب');
   }
 
   Future<void> publishPost(String? text, String? img) async {
@@ -2271,25 +3029,39 @@ class _HomeState extends State<Home> {
         text: text, img: img, im: img != null);
     setState(() => posts.add(p));
     save();
+    if (netReady && await cloud.ensure()) {
+      String? media;
+      var ok = true;
+      if (img != null) {
+        media = 'p/${cloud.uid}_${DateTime.now().microsecondsSinceEpoch}.jpg';
+        ok = await cloud.upload(media, await File(img).readAsBytes(), 'image/jpeg');
+      }
+      if (ok && await srvInsert('posts', {'id': p.id, 'author': me!.u, 'kind': 'post', 'body': text, 'media': media})) {
+        setState(() {
+          p.srv = true;
+          p.ip = media;
+        });
+        save();
+        return;
+      }
+      snack('تعذر النشر على الإنترنت، اتحفظ عندك وهيوصل للقريبين منك');
+    }
     for (final id in peers.where((id) => who.containsKey(id))) {
       sendJ(id, postMeta(p));
-    }
-    if (!netReady) return;
-    if (img != null && await cloud.ensure()) {
-      final pth = 'p/${cloud.uid}_${DateTime.now().microsecondsSinceEpoch}.jpg';
-      if (await cloud.upload(pth, await File(img).readAsBytes(), 'image/jpeg')) {
-        p.ip = pth;
-        save();
-      }
-    }
-    for (final u in followers.toList()) {
-      if (!isNear(u)) sendUser(u, postMeta(p));
     }
   }
 
   void delPost(Post p, bool inSheet) {
-    setState(() => posts.remove(p));
+    setState(() {
+      posts.remove(p);
+      explore.remove(p);
+      reelsList.remove(p);
+      for (final l in userPosts.values) {
+        l.removeWhere((x) => x.id == p.id);
+      }
+    });
     save();
+    if (p.srv && p.from == me!.u) cloud.rest('DELETE', '/rest/v1/posts?id=eq.${p.id}');
     if (inSheet) Navigator.pop(context);
   }
 
@@ -2377,7 +3149,7 @@ class _HomeState extends State<Home> {
                       for (final e in items)
                         ListTile(
                           leading: Icon(e.key.startsWith('g:') ? Icons.group : Icons.person),
-                          title: Text(e.value),
+                          title: fw.Text(e.value),
                           trailing: const Icon(Icons.send),
                           onTap: () {
                             Navigator.pop(c);
@@ -2467,8 +3239,56 @@ class _HomeState extends State<Home> {
                     st(() {});
                   },
                 ),
+                const SizedBox(height: 20),
+                const Text('اللغة'),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: 'ar', label: fw.Text('العربية')),
+                    ButtonSegment(value: 'en', label: fw.Text('English')),
+                  ],
+                  selected: {langCode.value},
+                  onSelectionChanged: (s) {
+                    langCode.value = s.first;
+                    save();
+                    st(() {});
+                  },
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('الدردشة عبر الإنترنت'),
+                  subtitle: const Text('لو قفلتها، الرسائل بتتبعت بس لما تكونوا قريبين من بعض (بلوتوث)'),
+                  value: chatNet,
+                  onChanged: (v) {
+                    setState(() => chatNet = v);
+                    save();
+                    st(() {});
+                  },
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.privacy_tip_outlined),
+                  title: const Text('سياسة الخصوصية'),
+                  onTap: () {
+                    Navigator.pop(c);
+                    openPolicy();
+                  },
+                ),
               ]),
             ),
+          ),
+        ),
+      );
+
+  void openNet(String url) => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white),
+            body: Center(child: InteractiveViewer(child: Image.network(url))),
           ),
         ),
       );
@@ -2479,6 +3299,53 @@ class _HomeState extends State<Home> {
     final liked = myLikes.contains(p.id);
     final ok = p.img != null && File(p.img!).existsSync();
     final cap = (p.text ?? '').trim();
+    final waiting = Container(
+      height: 180,
+      width: double.infinity,
+      color: cs.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.image_outlined, size: 36, color: cs.onSurfaceVariant),
+        const SizedBox(height: 6),
+        Text('الصورة بتتحمل لما تتصل بصاحبها', style: TextStyle(color: cs.onSurfaceVariant)),
+      ]),
+    );
+    Widget media;
+    if (!p.im) {
+      media = cap.isEmpty
+          ? const SizedBox.shrink()
+          : Container(
+              width: double.infinity,
+              color: p.color,
+              padding: const EdgeInsets.all(28),
+              constraints: const BoxConstraints(minHeight: 160),
+              alignment: Alignment.center,
+              child: fw.Text(cap,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            );
+    } else if (ok) {
+      media = GestureDetector(
+        onTap: () => openImg(p.img!),
+        child: Image.file(File(p.img!), width: double.infinity, fit: BoxFit.cover),
+      );
+    } else if (p.ip != null) {
+      final url = pubUrl(p.ip!);
+      media = GestureDetector(
+        onTap: () => openNet(url),
+        child: Image.network(
+          url,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          loadingBuilder: (c, w, pg) => pg == null
+              ? w
+              : Container(height: 220, alignment: Alignment.center, child: const CircularProgressIndicator()),
+          errorBuilder: (c, e, s) => waiting,
+        ),
+      );
+    } else {
+      media = waiting;
+    }
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       clipBehavior: Clip.antiAlias,
@@ -2502,34 +3369,7 @@ class _HomeState extends State<Home> {
             ]),
           ),
         ),
-        if (p.im)
-          (ok
-              ? GestureDetector(
-                  onTap: () => openImg(p.img!),
-                  child: Image.file(File(p.img!), width: double.infinity, fit: BoxFit.cover),
-                )
-              : Container(
-                  height: 180,
-                  width: double.infinity,
-                  color: cs.surfaceContainerHighest,
-                  alignment: Alignment.center,
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.image_outlined, size: 36, color: cs.onSurfaceVariant),
-                    const SizedBox(height: 6),
-                    Text('الصورة بتتحمل لما تتصل بصاحبها', style: TextStyle(color: cs.onSurfaceVariant)),
-                  ]),
-                ))
-        else if (cap.isNotEmpty)
-          Container(
-            width: double.infinity,
-            color: p.color,
-            padding: const EdgeInsets.all(28),
-            constraints: const BoxConstraints(minHeight: 160),
-            alignment: Alignment.center,
-            child: Text(cap,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-          ),
+        media,
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
           child: Row(children: [
@@ -2548,7 +3388,7 @@ class _HomeState extends State<Home> {
         if (p.im && cap.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-            child: Text.rich(TextSpan(children: [
+            child: fw.Text.rich(TextSpan(children: [
               TextSpan(text: '${pr.n}  ', style: const TextStyle(fontWeight: FontWeight.w700)),
               TextSpan(text: cap),
             ])),
@@ -2571,57 +3411,80 @@ class _HomeState extends State<Home> {
 
   Widget feed() {
     final cs = Theme.of(context).colorScheme;
-    final l = posts.where((p) => p.from == me!.u || following.contains(p.from)).toList()
+    final l = (exploreTab
+        ? explore.toList()
+        : posts.where((p) => p.kind == 'post' && (p.from == me!.u || following.contains(p.from))).toList())
       ..sort((a, b) => b.at.compareTo(a.at));
     final sug = contacts.values.where((p) => p.u != me!.u && !following.contains(p.u)).toList();
-    return ListView(padding: const EdgeInsets.only(bottom: 12), children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-        child: Material(
-          color: cs.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(28),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: newPost,
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Row(children: [
-                av(me!.a, r: 18),
-                const SizedBox(width: 12),
-                Expanded(child: Text('اكتب منشور جديد...', style: TextStyle(color: cs.onSurfaceVariant))),
-                Icon(Icons.add_photo_alternate_outlined, color: cs.primary),
-                const SizedBox(width: 6),
-              ]),
+    return RefreshIndicator(
+      onRefresh: pullSocial,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 12),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: Material(
+              color: cs.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(28),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: newPost,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(children: [
+                    av(me!.a, r: 18),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text('اكتب منشور جديد...', style: TextStyle(color: cs.onSurfaceVariant))),
+                    Icon(Icons.add_photo_alternate_outlined, color: cs.primary),
+                    const SizedBox(width: 6),
+                  ]),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-      if (sug.isNotEmpty) ...[
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Text('اقتراحات للمتابعة', style: TextStyle(fontWeight: FontWeight.w700)),
-        ),
-        SizedBox(
-          height: 100,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            children: [for (final p in sug) ring(p.n, av(p.a), () => openProf(p.u), true)],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: false, label: Text('أصدقائي')),
+                ButtonSegment(value: true, label: Text('اكتشاف')),
+              ],
+              selected: {exploreTab},
+              onSelectionChanged: (s) => setState(() => exploreTab = s.first),
+            ),
           ),
-        ),
-      ],
-      if (l.isEmpty)
-        Padding(
-          padding: const EdgeInsets.only(top: 32),
-          child: empty(Icons.dynamic_feed_outlined, 'مفيش منشورات لسه',
-              'تابع ناس من ملفاتهم الشخصية أو انشر أول منشور ليك',
-              action: FilledButton.icon(
-                  onPressed: newPost,
-                  icon: const Icon(Icons.add_photo_alternate_outlined),
-                  label: const Text('منشور جديد'))),
-        ),
-      for (final p in l) postCard(p),
-    ]);
+          if (!exploreTab && sug.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Text('اقتراحات للمتابعة', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            SizedBox(
+              height: 100,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                children: [for (final p in sug) ring(p.n, av(p.a), () => openProf(p.u), true)],
+              ),
+            ),
+          ],
+          if (l.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 32),
+              child: exploreTab
+                  ? empty(Icons.explore_outlined, 'مفيش حاجة للاكتشاف لسه', 'اسحب لتحت للتحديث')
+                  : empty(Icons.dynamic_feed_outlined, 'مفيش منشورات لسه',
+                      'تابع ناس من ملفاتهم الشخصية أو انشر أول منشور ليك',
+                      action: FilledButton.icon(
+                          onPressed: newPost,
+                          icon: const Icon(Icons.add_photo_alternate_outlined),
+                          label: const Text('منشور جديد'))),
+            ),
+          for (final p in l) postCard(p),
+        ],
+      ),
+    );
   }
 
   Widget stat(String label, int n, VoidCallback? onTap) => Expanded(
@@ -2641,22 +3504,36 @@ class _HomeState extends State<Home> {
 
   Widget thumb(Post x) {
     final ok = x.img != null && File(x.img!).existsSync();
+    final plain = Container(
+      color: x.color,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(6),
+      child: x.kind == 'reel'
+          ? const Icon(Icons.play_circle_outline, color: Colors.white, size: 36)
+          : (x.im
+              ? const Icon(Icons.image_outlined, color: Colors.white70)
+              : fw.Text(x.text ?? '',
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+    );
+    Widget child;
+    if (ok) {
+      child = Image.file(File(x.img!), fit: BoxFit.cover);
+    } else if (x.im && x.ip != null) {
+      child = Image.network(pubUrl(x.ip!), fit: BoxFit.cover, errorBuilder: (c, e, s) => plain);
+    } else {
+      child = plain;
+    }
     return GestureDetector(
-      onTap: () => showPost(x),
-      child: ok
-          ? Image.file(File(x.img!), fit: BoxFit.cover)
-          : Container(
-              color: x.color,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(6),
-              child: x.im
-                  ? const Icon(Icons.image_outlined, color: Colors.white70)
-                  : Text(x.text ?? '',
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-            ),
+      onTap: () => x.kind == 'reel' ? openReels(x) : showPost(x),
+      child: Stack(fit: StackFit.expand, children: [
+        child,
+        if (x.kind == 'reel')
+          const PositionedDirectional(
+              top: 6, end: 6, child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22)),
+      ]),
     );
   }
 
@@ -2664,7 +3541,14 @@ class _HomeState extends State<Home> {
     final cs = Theme.of(context).colorScheme;
     final mine = u == me!.u;
     final p = prof(u);
-    final ps = posts.where((x) => x.from == u).toList()..sort((a, b) => b.at.compareTo(a.at));
+    final byId = <String, Post>{};
+    for (final x in posts.where((x) => x.from == u)) {
+      byId[x.id] = x;
+    }
+    for (final x in (userPosts[u] ?? <Post>[])) {
+      byId.putIfAbsent(x.id, () => x);
+    }
+    final ps = byId.values.toList()..sort((a, b) => b.at.compareTo(a.at));
     final nFollowers = mine ? followers.length : (stats[u]?[0] ?? 0);
     final nFollowing = mine ? following.length : (stats[u]?[1] ?? 0);
     final isFol = following.contains(u);
@@ -2697,7 +3581,7 @@ class _HomeState extends State<Home> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           nm(u, p.n, st: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
           Text('@$u', style: TextStyle(color: cs.onSurfaceVariant)),
-          if ((p.bio ?? '').isNotEmpty) ...[const SizedBox(height: 6), Text(p.bio!)],
+          if ((p.bio ?? '').isNotEmpty) ...[const SizedBox(height: 6), fw.Text(p.bio!)],
           if (mine) ...[
             const SizedBox(height: 8),
             Row(children: [
@@ -2811,8 +3695,8 @@ class _HomeState extends State<Home> {
                 minLines: 1,
                 maxLines: 5,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  hintText: 'اكتب رسالة',
+                decoration: InputDecoration(
+                  hintText: T('اكتب رسالة'),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -2929,7 +3813,7 @@ class _HomeState extends State<Home> {
                         child: ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.file(File(m.img!))),
                       )
                     else
-                      Text(m.t ?? '', style: TextStyle(fontSize: 16, height: 1.35, color: fg)),
+                      fw.Text(m.t ?? '', style: TextStyle(fontSize: 16, height: 1.35, color: fg)),
                   ],
                 ),
               ),
