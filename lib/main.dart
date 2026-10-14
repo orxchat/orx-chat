@@ -515,11 +515,9 @@ class Cloud {
       final r = await hc.openUrl(method, Uri.parse('$sbUrl$path')).timeout(const Duration(seconds: 15));
       r.headers.set('apikey', sbKey);
       if (auth && at != null) r.headers.set('Authorization', 'Bearer $at');
-      if (body != null) {
-        r.headers.set('Content-Type', 'application/json');
-        r.add(utf8.encode(jsonEncode(body)));
-      }
+      if (body != null) r.headers.set('Content-Type', 'application/json');
       headers?.forEach((k, v) => r.headers.set(k, v));
+      if (body != null) r.add(utf8.encode(jsonEncode(body)));
       final res = await r.close().timeout(const Duration(seconds: 20));
       final txt = await res.transform(utf8.decoder).join();
       dynamic js;
