@@ -20,7 +20,7 @@ import 'package:cryptography/cryptography.dart'
 const svc = 'com.btchat.app';
 const strat = Strategy.P2P_CLUSTER;
 const seed = Color(0xFF0E7C66);
-const ownerPk = 'pk2WAoJGgQCIMj3hH1xeMZYxB+1Rmssl2248qDQon4M=';
+const ownerPk = '4WViu8FM9l7q8f0JmoawykKzCyzcRWJSFooFcGf88I8=';
 const storyColors = [
   Color(0xFF0E7C66),
   Color(0xFF6A1B9A),
@@ -47,6 +47,9 @@ bool get isEn => langCode.value == 'en';
 const _en = <String, String>{
   'دردشة بدون إنترنت': 'Chat without internet',
   'مفيش اتصال بالإنترنت': 'No internet connection',
+  'فحص الاتصال': 'Check connection',
+  'إعادة المحاولة': 'Retry',
+  'إغلاق': 'Close',
   'فعّل Anonymous sign-ins من إعدادات Supabase': 'Enable Anonymous sign-ins in the Supabase settings',
   'انتهت جلسة الإنترنت': 'Internet session expired',
   'الآن': 'Now',
@@ -500,8 +503,10 @@ const sbKey = 'sb_publishable_fjjlcGPmqjvJN9iXDsSvVQ_OHOxCLfo';
 class Cloud {
   final HttpClient hc = HttpClient()..connectionTimeout = const Duration(seconds: 12);
   String? at, rt, uid;
-  String err = '';
+  String err = '', lastEx = '';
   DateTime exp = DateTime.fromMillisecondsSinceEpoch(0);
+  String get noNet =>
+      'مفيش اتصال بالإنترنت (${lastEx.length > 90 ? lastEx.substring(0, 90) : lastEx})';
   void Function()? onSession;
 
   Future<(int, dynamic)> rest(String method, String path,
@@ -524,7 +529,8 @@ class Cloud {
         js = txt;
       }
       return (res.statusCode, js);
-    } catch (_) {
+    } catch (e) {
+      lastEx = e.toString();
       return (-1, null);
     }
   }
@@ -604,7 +610,7 @@ class Cloud {
         return true;
       }
       if (r.$1 == -1) {
-        err = 'مفيش اتصال بالإنترنت';
+        err = noNet;
         return false;
       }
     }
@@ -615,7 +621,7 @@ class Cloud {
         return true;
       }
       err = r.$1 == -1
-          ? 'مفيش اتصال بالإنترنت'
+          ? noNet
           : (_msg(r.$2).toLowerCase().contains('anonymous')
               ? 'فعّل Anonymous sign-ins من إعدادات Supabase'
               : 'تعذر تسجيل الدخول للسيرفر (${r.$1})');
@@ -2272,7 +2278,7 @@ class _HomeState extends State<Home> {
       netFatal = true;
       netMsg = 'اسم المستخدم @${me!.u} مستخدم على الإنترنت من حساب تاني';
     } else {
-      netMsg = r.$1 == -1 ? 'مفيش اتصال بالإنترنت' : 'تعذر التسجيل على الإنترنت (${r.$1})';
+      netMsg = r.$1 == -1 ? cloud.noNet : 'تعذر التسجيل على الإنترنت (${r.$1})';
     }
     return false;
   }
@@ -2406,6 +2412,46 @@ class _HomeState extends State<Home> {
       polling = false;
     }
   }
+
+  Future<String> probe() async {
+    final b = StringBuffer();
+    for (final h in ['google.com', 'supabase.co', Uri.parse(sbUrl).host]) {
+      try {
+        final r = await InternetAddress.lookup(h).timeout(const Duration(seconds: 8));
+        b.writeln('DNS $h: OK ${r.isNotEmpty ? r.first.address : ''}');
+      } catch (e) {
+        b.writeln('DNS $h: FAIL $e');
+      }
+    }
+    final r = await cloud.rest('GET', '/auth/v1/health', auth: false);
+    b.writeln('HTTP health: ${r.$1} ${r.$1 == -1 ? cloud.lastEx : ''}');
+    b.writeln('');
+    b.writeln('state: ${cloud.err}');
+    return b.toString();
+  }
+
+  void netDiag() => showDialog(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('فحص الاتصال'),
+          content: SingleChildScrollView(
+            child: FutureBuilder<String>(
+              future: probe(),
+              builder: (c, snap) => SelectableText(snap.data ?? '...', textDirection: TextDirection.ltr),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(c);
+                initNet();
+              },
+              child: const Text('إعادة المحاولة'),
+            ),
+            TextButton(onPressed: () => Navigator.pop(c), child: const Text('إغلاق')),
+          ],
+        ),
+      );
 
   Future<void> findFriend() async {
     if (!netReady) return snack(netMsg.isEmpty ? 'الإنترنت لسه بيتجهز، جرّب بعد ثواني' : netMsg);
@@ -3594,6 +3640,15 @@ class _HomeState extends State<Home> {
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
               ),
             ]),
+            if (!netReady)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  onPressed: netDiag,
+                  icon: const Icon(Icons.network_check, size: 18),
+                  label: const Text('فحص الاتصال'),
+                ),
+              ),
           ],
         ]),
       ),
