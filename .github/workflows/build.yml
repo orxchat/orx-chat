@@ -34,3 +34,22 @@ jobs:
         with:
           name: orx-chat-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+      - name: Dart errors
+        if: always()
+        continue-on-error: true
+        run: |
+          flutter analyze --no-pub 2>&1 | grep -E "^\s*error" | head -100 > errors.txt || true
+          echo '### Dart errors' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat errors.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+      - name: APK permissions
+        if: always()
+        continue-on-error: true
+        run: |
+          AAPT=$(ls $ANDROID_HOME/build-tools/*/aapt | tail -1)
+          $AAPT dump permissions build/app/outputs/flutter-apk/app-release.apk > perms.txt || true
+          echo '### APK permissions' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat perms.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
