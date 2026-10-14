@@ -1053,6 +1053,8 @@ class _HomeState extends State<Home> {
     for (final id in peers) {
       sendJ(id, {'k': 'c', 'l': [e]});
     }
+    sendUser(u, {'k': 'c', 'l': [e]});
+    if (netReady) srvInsert('certs', {'p': k, 'u': u, 'r': r, 't': t, 's': e['s']});
   }
 
   void contactMenu(String u) => showModalBottomSheet(
@@ -1881,7 +1883,7 @@ class _HomeState extends State<Home> {
           title: inChat
               ? chatHead()
               : (otherProf
-                  ? nm(profU, '@$profU', st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17))
+                  ? nm(profU, '\u200e@$profU', st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17))
                   : Row(mainAxisSize: MainAxisSize.min, children: [logo(), badge(me!.u)])),
           actions: [
             if (view == 'home')
@@ -2133,7 +2135,7 @@ class _HomeState extends State<Home> {
           card(ListTile(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             leading: const CircleAvatar(child: Icon(Icons.person)),
-            title: Text('@${e.value}', style: bold),
+            title: Text('\u200e@${e.value}', style: bold),
             trailing: FilledButton.tonal(onPressed: () => connect(e.key), child: const Text('اتصال')),
           )),
       ],
@@ -2493,7 +2495,7 @@ class _HomeState extends State<Home> {
                       ListTile(
                         leading: const CircleAvatar(child: Icon(Icons.person)),
                         title: Text((e['n'] ?? '') as String),
-                        subtitle: Text('@${e['u']}'),
+                        subtitle: Text('\u200e@${e['u']}'),
                         trailing: const Icon(Icons.add),
                         onTap: () async {
                           Navigator.pop(c);
@@ -2518,6 +2520,7 @@ class _HomeState extends State<Home> {
   // ---------- internet: public posts, reels, stories ----------
   final explore = <Post>[], reelsList = <Post>[];
   final userPosts = <String, List<Post>>{};
+  bool certsPushed = false;
   bool chatNet = true, uploading = false, exploreTab = false, socialBusy = false;
   int reelIdx = 0;
   PageController reelCtl = PageController();
@@ -2643,6 +2646,13 @@ class _HomeState extends State<Home> {
         }
         stories.removeWhere((s) => !s.live);
       }
+      if (isOwner && !certsPushed && certs.isNotEmpty) {
+        final rp = await cloud.rest('POST', '/rest/v1/certs',
+            headers: {'Prefer': 'return=minimal,resolution=ignore-duplicates'}, body: certs.values.toList());
+        if (rp.$1 >= 200 && rp.$1 < 300) certsPushed = true;
+      }
+      final rc = await cloud.rest('GET', '/rest/v1/certs?select=*&order=t.desc&limit=500');
+      if (rc.$1 == 200 && rc.$2 is List) await mergeCerts(rc.$2 as List);
       if (mounted) setState(() {});
       save();
     } catch (_) {
@@ -3227,7 +3237,7 @@ class _HomeState extends State<Home> {
                           ListTile(
                             leading: av(prof(u).a),
                             title: nm(u, prof(u).n),
-                            subtitle: Text('@$u'),
+                            subtitle: Text('\u200e@$u'),
                             onTap: () {
                               Navigator.pop(c);
                               openProf(u);
@@ -3624,7 +3634,7 @@ class _HomeState extends State<Home> {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           nm(u, p.n, st: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-          Text('@$u', style: TextStyle(color: cs.onSurfaceVariant)),
+          Text('\u200e@$u', style: TextStyle(color: cs.onSurfaceVariant)),
           if ((p.bio ?? '').isNotEmpty) ...[const SizedBox(height: 6), fw.Text(p.bio!)],
           if (mine) ...[
             const SizedBox(height: 8),
