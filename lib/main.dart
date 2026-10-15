@@ -6,7 +6,7 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart' show AudioPlayer, DeviceFileSource;
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/widgets.dart' as fw show Text;
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData, HapticFeedback;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nearby_connections/nearby_connections.dart';
@@ -175,6 +175,34 @@ const _en = <String, String>{
       'If off, messages are sent only when you are near each other (Bluetooth)',
   'بحث عن أجهزة قريبة': 'Find nearby devices',
   'الفيديو مش شغال': "The video can't be played",
+  'إبلاغ عن المحتوى': 'Report content',
+  'إبلاغ عن المستخدم': 'Report user',
+  'حظر المستخدم': 'Block user',
+  'إلغاء الحظر': 'Unblock',
+  'تم الحظر': 'User blocked',
+  'تم إلغاء الحظر': 'User unblocked',
+  'محتوى مزعج أو سبام': 'Spam',
+  'محتوى غير لائق': 'Inappropriate content',
+  'تحرش أو إساءة': 'Harassment or abuse',
+  'انتحال شخصية': 'Impersonation',
+  'سبب آخر': 'Other',
+  'تفاصيل إضافية (اختياري)': 'More details (optional)',
+  'إرسال': 'Send',
+  'الإبلاغ يحتاج إنترنت': 'Reporting needs internet',
+  'تم إرسال البلاغ، شكراً لك': 'Report sent, thank you',
+  'تعذر إرسال البلاغ': "Couldn't send the report",
+  'الحسابات المحظورة': 'Blocked accounts',
+  'مفيش حسابات محظورة': 'No blocked accounts',
+  'حذف الحساب': 'Delete account',
+  'هيتم حذف حسابك وكل بياناتك نهائياً من السيرفر ومن الجهاز: الملف الشخصي والمنشورات والقصص والتعليقات والرسائل. مينفعش نرجّعها بعد كده.': 'Your account and all your data will be permanently deleted from the server and from this device: profile, posts, stories, comments and messages. This cannot be undone.',
+  'حذف نهائي': 'Delete permanently',
+  'لازم تكون متصل بالإنترنت عشان تحذف الحساب': 'You must be online to delete your account',
+  'تعذر حذف الحساب من السيرفر، جرّب تاني': "Couldn't delete the account from the server, try again",
+  'التعليقات': 'Comments',
+  'التعليقات بتحتاج إنترنت': 'Comments need internet',
+  'تعذر إرسال التعليق': "Couldn't send the comment",
+  'مفيش تعليقات لسه': 'No comments yet',
+  'كن أول من يعلّق': 'Be the first to comment',
 };
 
 final _enPat = <(RegExp, String Function(RegExpMatch))>[
@@ -240,7 +268,7 @@ ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال ال
 
 2) المعلومات التي تقدمها
 • اسم المستخدم والاسم وصورة الملف ونبذة قصيرة.
-• الرسائل والصور والتسجيلات الصوتية والمنشورات والريلز (مقاطع الفيديو القصيرة) والقصص التي ترسلها.
+• الرسائل والصور والتسجيلات الصوتية والمنشورات والريلز (مقاطع الفيديو القصيرة) والقصص والتعليقات التي ترسلها.
 • مفاتيح تشفير تُنشأ على جهازك لإثبات هويتك وتشفير رسائلك.
 
 3) كيف تنتقل الرسائل
@@ -249,7 +277,7 @@ ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال ال
 • ما يمكن للخادم رؤيته: المعرّف المجهول للحساب، واسم المرسل، ومعرّف المستلم، ووقت وحجم الرسائل.
 
 4) الملف العام والمحتوى العام
-عند استخدام ميزات الإنترنت، تُخزَّن بيانات ملفك (اسم المستخدم، الاسم، النبذة، الصورة، المفاتيح العامة) على الخادم ويمكن لأي شخص العثور عليها بالبحث عن اسم المستخدم. لا تضع معلومات حساسة في ملفك. المنشورات والريلز والقصص وصورها وفيديوهاتها والإعجابات محتوى عام: تُخزَّن على الخادم دون تشفير من طرف إلى طرف ويمكن لمستخدمي التطبيق الآخرين رؤيتها. لا تنشر ما تريد إبقاءه خاصا.
+عند استخدام ميزات الإنترنت، تُخزَّن بيانات ملفك (اسم المستخدم، الاسم، النبذة، الصورة، المفاتيح العامة) على الخادم ويمكن لأي شخص العثور عليها بالبحث عن اسم المستخدم. لا تضع معلومات حساسة في ملفك. المنشورات والريلز والقصص والتعليقات وصورها وفيديوهاتها والإعجابات محتوى عام: تُخزَّن على الخادم دون تشفير من طرف إلى طرف ويمكن لمستخدمي التطبيق الآخرين رؤيتها. لا تنشر ما تريد إبقاءه خاصا. يمكنك الإبلاغ عن أي مستخدم أو محتوى وحظر أي مستخدم من داخل التطبيق، وقد نراجع البلاغات ونحذف المحتوى المخالف أو نوقف الحسابات المسيئة.
 
 5) المعلومات المخزنة على جهازك
 تُخزَّن المحادثات وجهات الاتصال والمنشورات والقصص والإعدادات ومفاتيحك الخاصة في مساحة التطبيق الخاصة على هاتفك. عند حذف التطبيق أو مسح بياناته تُحذف من جهازك ولا نستطيع استرجاعها.
@@ -267,7 +295,7 @@ ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال ال
 تستضيف Supabase قاعدة البيانات والمصادقة المجهولة وتخزين الملفات، وتنطبق سياسة الخصوصية الخاصة بها على معالجتها.
 
 9) الاحتفاظ والحذف
-قد تبقى الرسائل والملفات المشفرة على الخادم إلى أن تُحذف، وقد نحذف القديم منها دوريا. لطلب حذف بياناتك المخزنة على الخادم (الملف العام وأي عناصر محفوظة) راسلنا على البريد أعلاه مع اسم المستخدم.
+قد تبقى الرسائل والملفات المشفرة على الخادم إلى أن تُحذف، وقد نحذف القديم منها دوريا. يمكنك حذف حسابك وكل بياناتك المخزنة على الخادم (الملف العام والمنشورات والريلز والقصص والتعليقات والرسائل والملفات) في أي وقت من داخل التطبيق: زر المظهر ثم حذف الحساب. ويمكنك أيضا مراسلتنا على البريد أعلاه مع اسم المستخدم.
 
 10) الأمان
 نستخدم تشفيرا من طرف إلى طرف لرسائل الإنترنت. لا يوجد نظام آمن بالكامل، فحافظ على حماية هاتفك.
@@ -289,7 +317,7 @@ ORX is a chat app that works over Bluetooth / nearby connections and over the in
 
 2) Information you provide
 • Your username, display name, profile photo and short bio.
-• Messages, photos, voice messages, posts, reels (short videos) and stories you send.
+• Messages, photos, voice messages, posts, reels (short videos), stories and comments you send.
 • Cryptographic keys generated on your device to prove your identity and encrypt your messages.
 
 3) How messages travel
@@ -298,7 +326,7 @@ ORX is a chat app that works over Bluetooth / nearby connections and over the in
 • What the server can see: the anonymous account ID, the sender's username, the recipient's ID, and the time and size of messages.
 
 4) Public profile and public content
-When you use internet features, your profile data (username, display name, bio, photo, public keys) is stored on the server and can be found by anyone who searches for your username. Do not put sensitive information in your profile. Posts, reels, stories, their photos and videos, and likes are public content: they are stored on the server without end-to-end encryption and can be seen by other users of the app. Do not publish anything you want to keep private.
+When you use internet features, your profile data (username, display name, bio, photo, public keys) is stored on the server and can be found by anyone who searches for your username. Do not put sensitive information in your profile. Posts, reels, stories, comments, their photos and videos, and likes are public content: they are stored on the server without end-to-end encryption and can be seen by other users of the app. Do not publish anything you want to keep private. You can report any user or content and block any user from inside the app. We may review reports and remove violating content or suspend abusive accounts.
 
 5) Information stored on your device
 Chats, contacts, posts, stories, settings and your private keys are kept in the app's private storage on your phone. If you uninstall the app or clear its data they are deleted from your device, and we cannot restore them.
@@ -316,7 +344,7 @@ No ads, no analytics or tracking tools, and we do not sell or share your data wi
 Supabase hosts the database, anonymous authentication and file storage. Its own privacy policy applies to its processing.
 
 9) Retention and deletion
-Encrypted messages and files may stay on the server until they are deleted, and we may delete old ones periodically. To request deletion of your server-side data (public profile and any stored items), email us at the address above with your username.
+Encrypted messages and files may stay on the server until they are deleted, and we may delete old ones periodically. You can delete your account and all your server-side data (public profile, posts, reels, stories, comments, messages and files) at any time from inside the app: the appearance button, then Delete account. You can also email us at the address above with your username.
 
 10) Security
 We use end-to-end encryption for internet messages. No system is perfectly secure, so keep your phone protected.
@@ -872,6 +900,7 @@ class _HomeState extends State<Home> {
           stats[e.key] = List<int>.from(e.value);
         }
         chatNet = j['chatNet'] != false;
+        blocked.addAll(List<String>.from((j['blocked'] as List?) ?? []));
         final cj = j['cloud'];
         if (cj is Map) {
           cloud.rt = cj['rt'] as String?;
@@ -908,6 +937,7 @@ class _HomeState extends State<Home> {
         'accent': accentIdx.value,
         'tmode': themeMode.value.index,
         'chatNet': chatNet,
+        'blocked': blocked.toList(),
         'lang': langCode.value,
         'cloud': {'rt': cloud.rt, 'uid': cloud.uid, 'avSrc': cavSrc, 'av': cav, 'last': lastMsgId},
       }));
@@ -928,7 +958,7 @@ class _HomeState extends State<Home> {
   String chatTitle(String c) =>
       c.startsWith('g:') ? (groups[c.substring(2)]?.n ?? 'مجموعة') : prof(c.substring(2)).n;
 
-  Widget av(String? path, {double r = 22, IconData icon = Icons.person}) {
+  Widget av(String? path, {double r = 22, IconData icon = Icons.person_rounded}) {
     final ok = path != null && File(path).existsSync();
     return CircleAvatar(
         radius: r, backgroundImage: ok ? FileImage(File(path)) : null, child: ok ? null : Icon(icon));
@@ -1102,7 +1132,7 @@ class _HomeState extends State<Home> {
         surfaceTintColor: Colors.transparent,
         title: editing ? const Text('تعديل الملف الشخصي') : logo(),
         leading: editing
-            ? IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => editing = false))
+            ? IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => setState(() => editing = false))
             : null,
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(24, 8, 24, 24), children: [
@@ -1361,6 +1391,7 @@ class _HomeState extends State<Home> {
     }
     final u = uOf(id);
     if (u == null) return;
+    if (blocked.contains(u)) return;
     if (k == 'f') {
       (fq[id] ??= []).add(j);
     } else if (k == 'm') {
@@ -1682,7 +1713,7 @@ class _HomeState extends State<Home> {
 
   Widget storiesBar() {
     final by = <String, List<Story>>{};
-    for (final s in stories.where((s) => s.live)) {
+    for (final s in stories.where((s) => s.live && !blocked.contains(s.from))) {
       (by[s.from] ??= []).add(s);
     }
     return SizedBox(
@@ -1691,7 +1722,7 @@ class _HomeState extends State<Home> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         children: [
-          ring('إضافة', const CircleAvatar(radius: 22, child: Icon(Icons.add)), addStory, false),
+          ring('إضافة', const CircleAvatar(radius: 22, child: Icon(Icons.add_rounded)), addStory, false),
           for (final e in by.entries)
             ring(
               e.key == me!.u ? 'قصتي' : prof(e.key).n,
@@ -1813,12 +1844,14 @@ class _HomeState extends State<Home> {
           clipBehavior: Clip.antiAlias,
           child: NavigationBar(
             height: 64,
+            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
             elevation: 0,
             backgroundColor: Colors.transparent,
             surfaceTintColor: Colors.transparent,
             indicatorColor: cs.primaryContainer,
             selectedIndex: view == 'feed' ? 1 : (view == 'reels' ? 2 : (view == 'profile' ? 3 : 0)),
             onDestinationSelected: (i) {
+              HapticFeedback.selectionClick();
               setState(() {
                 back = 'home';
                 if (i == 3) {
@@ -1833,8 +1866,8 @@ class _HomeState extends State<Home> {
             },
             destinations: [
               NavigationDestination(
-                  icon: const Icon(Icons.chat_bubble_outline),
-                  selectedIcon: const Icon(Icons.chat_bubble),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded),
+                  selectedIcon: const Icon(Icons.chat_bubble_rounded),
                   label: T('المحادثات')),
               NavigationDestination(
                   icon: const Icon(Icons.grid_view_outlined),
@@ -1842,11 +1875,11 @@ class _HomeState extends State<Home> {
                   label: T('المنشورات')),
               NavigationDestination(
                   icon: const Icon(Icons.smart_display_outlined),
-                  selectedIcon: const Icon(Icons.smart_display),
+                  selectedIcon: const Icon(Icons.smart_display_rounded),
                   label: T('ريلز')),
               NavigationDestination(
-                  icon: const Icon(Icons.person_outline),
-                  selectedIcon: const Icon(Icons.person),
+                  icon: const Icon(Icons.person_outline_rounded),
+                  selectedIcon: const Icon(Icons.person_rounded),
                   label: T('حسابي')),
             ],
           ),
@@ -1875,26 +1908,28 @@ class _HomeState extends State<Home> {
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           leading: inChat
-              ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: goHome)
+              ? IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: goHome)
               : (otherProf
-                  ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: goBack)
+                  ? IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: goBack)
                   : IconButton(
-                      tooltip: T('المظهر'), icon: const Icon(Icons.palette_outlined), onPressed: appearance)),
+                      tooltip: T('المظهر'), icon: const Icon(Icons.palette_rounded), onPressed: appearance)),
           title: inChat
               ? chatHead()
               : (otherProf
                   ? nm(profU, '\u200e@$profU', st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17))
                   : Row(mainAxisSize: MainAxisSize.min, children: [logo(), badge(me!.u)])),
           actions: [
+            if (otherProf) userMenu(profU),
+            if (inChat && cur!.startsWith('p:')) userMenu(cur!.substring(2)),
             if (view == 'home')
               IconButton(
                   tooltip: T('بحث عن أجهزة قريبة'),
-                  icon: const Icon(Icons.bluetooth_searching),
+                  icon: const Icon(Icons.bluetooth_searching_rounded),
                   onPressed: () => setState(() => view = 'near')),
             if (view == 'home')
               IconButton(
                   tooltip: T('إضافة صديق'),
-                  icon: const Icon(Icons.person_add_alt_1_outlined),
+                  icon: const Icon(Icons.person_add_alt_1_rounded),
                   onPressed: findFriend),
             if (owner)
               IconButton(
@@ -1997,7 +2032,7 @@ class _HomeState extends State<Home> {
     final qs = sCtl.text.trim().toLowerCase();
     bool hit(String s) => qs.isEmpty || s.toLowerCase().contains(qs);
     final gl = groups.values.where((g) => hit(g.n)).toList();
-    final pl = contacts.values.where((p) => p.u != me!.u && (hit(p.n) || hit(p.u))).toList();
+    final pl = contacts.values.where((p) => p.u != me!.u && !blocked.contains(p.u) && (hit(p.n) || hit(p.u))).toList();
     return ListView(padding: const EdgeInsets.only(bottom: 12), children: [
       storiesBar(),
       Padding(
@@ -2005,11 +2040,11 @@ class _HomeState extends State<Home> {
         child: TextField(
           controller: sCtl,
           onChanged: (_) => setState(() {}),
-          decoration: fld(context, hint: 'ابحث في المحادثات', icon: Icons.search).copyWith(
+          decoration: fld(context, hint: 'ابحث في المحادثات', icon: Icons.search_rounded).copyWith(
             suffixIcon: qs.isEmpty
                 ? null
                 : IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                     onPressed: () {
                       sCtl.clear();
                       setState(() {});
@@ -2032,7 +2067,7 @@ class _HomeState extends State<Home> {
                   CircleAvatar(
                       radius: 24,
                       backgroundColor: cs.primary,
-                      child: Icon(Icons.group_add, color: cs.onPrimary)),
+                      child: Icon(Icons.group_add_rounded, color: cs.onPrimary)),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2048,8 +2083,8 @@ class _HomeState extends State<Home> {
             ),
           ),
         ),
-      for (final g in gl) tile('g:${g.o}', g.n, null, Icons.group),
-      for (final p in pl) tile('p:${p.u}', p.n, p.a, Icons.person),
+      for (final g in gl) tile('g:${g.o}', g.n, null, Icons.group_rounded),
+      for (final p in pl) tile('p:${p.u}', p.n, p.a, Icons.person_rounded),
       if (gl.isEmpty && pl.isEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 32),
@@ -2060,7 +2095,7 @@ class _HomeState extends State<Home> {
             action: qs.isEmpty
                 ? FilledButton.icon(
                     onPressed: () => setState(() => view = 'near'),
-                    icon: const Icon(Icons.bluetooth_searching),
+                    icon: const Icon(Icons.bluetooth_searching_rounded),
                     label: const Text('الأجهزة القريبة'))
                 : null,
           ),
@@ -2090,7 +2125,7 @@ class _HomeState extends State<Home> {
               end: AlignmentDirectional.bottomEnd),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(on ? Icons.radar : Icons.bluetooth_searching, size: 36, color: cs.onPrimary),
+          Icon(on ? Icons.radar : Icons.bluetooth_searching_rounded, size: 36, color: cs.onPrimary),
           const SizedBox(height: 12),
           Text('الأجهزة القريبة',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: cs.onPrimary)),
@@ -2108,7 +2143,7 @@ class _HomeState extends State<Home> {
             FilledButton.icon(
               style: FilledButton.styleFrom(backgroundColor: cs.onPrimary, foregroundColor: cs.primary),
               onPressed: start,
-              icon: const Icon(Icons.bluetooth_searching),
+              icon: const Icon(Icons.bluetooth_searching_rounded),
               label: const Text('ابدأ البحث'),
             ),
           if (on) ...[
@@ -2134,7 +2169,7 @@ class _HomeState extends State<Home> {
         for (final e in found.entries)
           card(ListTile(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            leading: const CircleAvatar(child: Icon(Icons.person)),
+            leading: const CircleAvatar(child: Icon(Icons.person_rounded)),
             title: Text('\u200e@${e.value}', style: bold),
             trailing: FilledButton.tonal(onPressed: () => connect(e.key), child: const Text('اتصال')),
           )),
@@ -2368,6 +2403,7 @@ class _HomeState extends State<Home> {
 
   Future<bool> handleNet(Map row) async {
     final fu = row['from_u'] as String;
+    if (blocked.contains(fu)) return true;
     final p = await cloudProfile(fu);
     if (p == null) return false;
     try {
@@ -2485,7 +2521,7 @@ class _HomeState extends State<Home> {
                 autofocus: true,
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => go(),
-                decoration: fld(c, hint: 'ابحث باسم المستخدم', icon: Icons.search),
+                decoration: fld(c, hint: 'ابحث باسم المستخدم', icon: Icons.search_rounded),
               ),
               if (busy) const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()),
               Flexible(
@@ -2493,10 +2529,10 @@ class _HomeState extends State<Home> {
                   for (final e in res)
                     if (e['u'] != me!.u)
                       ListTile(
-                        leading: const CircleAvatar(child: Icon(Icons.person)),
+                        leading: const CircleAvatar(child: Icon(Icons.person_rounded)),
                         title: Text((e['n'] ?? '') as String),
                         subtitle: Text('\u200e@${e['u']}'),
-                        trailing: const Icon(Icons.add),
+                        trailing: const Icon(Icons.add_rounded),
                         onTap: () async {
                           Navigator.pop(c);
                           final u = e['u'] as String;
@@ -2520,6 +2556,8 @@ class _HomeState extends State<Home> {
   // ---------- internet: public posts, reels, stories ----------
   final explore = <Post>[], reelsList = <Post>[];
   final userPosts = <String, List<Post>>{};
+  final blocked = <String>{};
+  final ccount = <String, int>{};
   bool certsPushed = false;
   bool chatNet = true, uploading = false, exploreTab = false, socialBusy = false;
   int reelIdx = 0;
@@ -2562,6 +2600,17 @@ class _HomeState extends State<Home> {
   Future<void> syncLikes(List<Post> l) async {
     if (l.isEmpty) return;
     final ids = {for (final p in l) p.id}.toList();
+    final rcm = await cloud.rest('GET', '/rest/v1/comments?post_id=in.(${ids.join(',')})&select=post_id&limit=5000');
+    if (rcm.$1 == 200 && rcm.$2 is List) {
+      final cm = <String, int>{};
+      for (final e in (rcm.$2 as List)) {
+        final k = e['post_id'] as String;
+        cm[k] = (cm[k] ?? 0) + 1;
+      }
+      for (final p in l) {
+        ccount[p.id] = cm[p.id] ?? 0;
+      }
+    }
     final r = await cloud.rest('GET', '/rest/v1/likes?post_id=in.(${ids.join(',')})&select=post_id,u&limit=5000');
     if (r.$1 != 200 || r.$2 is! List) return;
     final m = <String, Set<String>>{};
@@ -2593,7 +2642,7 @@ class _HomeState extends State<Home> {
         DateTime oldest = DateTime.fromMillisecondsSinceEpoch(0);
         for (final row in rows) {
           final p = rowToPost(Map.from(row as Map));
-          if (p == null) continue;
+          if (p == null || blocked.contains(p.from)) continue;
           ids.add(p.id);
           oldest = p.at;
           if (mf(p.from)) {
@@ -2612,7 +2661,7 @@ class _HomeState extends State<Home> {
         final l = <Post>[];
         for (final row in rr.$2 as List) {
           final p = rowToPost(Map.from(row as Map));
-          if (p != null) l.add(p);
+          if (p != null && !blocked.contains(p.from)) l.add(p);
         }
         reelsList
           ..clear()
@@ -2629,7 +2678,7 @@ class _HomeState extends State<Home> {
           final m = Map.from(row as Map);
           final a = m['author'] as String;
           final sid = m['id'] as String;
-          if (!mf(a) || stories.any((s) => s.sid == sid)) continue;
+          if (!mf(a) || blocked.contains(a) || stories.any((s) => s.sid == sid)) continue;
           final media = m['media'] as String?;
           String? pth;
           if (media != null) {
@@ -2669,7 +2718,7 @@ class _HomeState extends State<Home> {
     final l = <Post>[];
     for (final row in r.$2 as List) {
       final p = rowToPost(Map.from(row as Map));
-      if (p != null) l.add(p);
+      if (p != null && !blocked.contains(p.from)) l.add(p);
     }
     await syncLikes(l);
     if (mounted) setState(() => userPosts[u] = l);
@@ -2755,6 +2804,19 @@ class _HomeState extends State<Home> {
       color: Colors.black,
       child: Stack(fit: StackFit.expand, children: [
         ReelPlayer(pubUrl(p.ip ?? ''), active && view == 'reels', key: ValueKey(p.id)),
+        const Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.center,
+                  colors: [Color(0xB3000000), Color(0x00000000)],
+                ),
+              ),
+            ),
+          ),
+        ),
         PositionedDirectional(
           start: 16,
           end: 84,
@@ -2790,14 +2852,21 @@ class _HomeState extends State<Home> {
           bottom: 24,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             IconButton(
-              icon: Icon(liked ? Icons.favorite : Icons.favorite_border, color: liked ? Colors.red : Colors.white, size: 32),
+              icon: Icon(liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: liked ? Colors.red : Colors.white, size: 32),
               onPressed: () => toggleLike(p),
             ),
             fw.Text('${p.likes.length}', style: white),
             const SizedBox(height: 8),
-            IconButton(icon: const Icon(Icons.share_outlined, color: Colors.white, size: 30), onPressed: () => sharePost(p)),
+            IconButton(
+                icon: const Icon(Icons.mode_comment_outlined, color: Colors.white, size: 28),
+                onPressed: () => showComments(p)),
+            fw.Text('${ccount[p.id] ?? 0}', style: white),
+            const SizedBox(height: 8),
+            IconButton(icon: const Icon(Icons.share_rounded, color: Colors.white, size: 30), onPressed: () => sharePost(p)),
             if (p.from == me!.u)
-              IconButton(icon: const Icon(Icons.delete_outline, color: Colors.white, size: 30), onPressed: () => delPost(p, false)),
+              IconButton(icon: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 30), onPressed: () => delPost(p, false))
+            else
+              userMenu(p.from, postId: p.id, color: Colors.white),
           ]),
         ),
       ]),
@@ -2832,6 +2901,335 @@ class _HomeState extends State<Home> {
       ),
       if (uploading) const Positioned(top: 0, left: 0, right: 0, child: LinearProgressIndicator()),
     ]);
+  }
+
+  // ---------- safety: block, report, delete account, comments ----------
+  String msgTime(String id) {
+    if (id.length < 16) return '';
+    final us = int.tryParse(id.substring(id.length - 16));
+    if (us == null) return '';
+    final d = DateTime.fromMicrosecondsSinceEpoch(us);
+    return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  }
+
+  void blockUser(String u) {
+    setState(() {
+      blocked.add(u);
+      following.remove(u);
+      followers.remove(u);
+      stories.removeWhere((s) => s.from == u);
+      if (cur == 'p:$u') cur = null;
+      if (view == 'chat' && cur == null) view = 'home';
+      if (view == 'profile' && profU == u) view = 'home';
+    });
+    save();
+    snack('تم الحظر');
+  }
+
+  void unblockUser(String u) {
+    setState(() => blocked.remove(u));
+    save();
+    snack('تم إلغاء الحظر');
+  }
+
+  Widget userMenu(String u, {String? postId, Color? color}) {
+    if (u == me!.u) return const SizedBox.shrink();
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.more_vert_rounded, color: color),
+      onSelected: (v) {
+        if (v == 'r') {
+          reportDialog(u, postId: postId);
+        } else if (v == 'b') {
+          if (blocked.contains(u)) {
+            unblockUser(u);
+          } else {
+            blockUser(u);
+          }
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(value: 'r', child: Text(postId != null ? 'إبلاغ عن المحتوى' : 'إبلاغ عن المستخدم')),
+        PopupMenuItem(value: 'b', child: Text(blocked.contains(u) ? 'إلغاء الحظر' : 'حظر المستخدم')),
+      ],
+    );
+  }
+
+  Future<void> reportDialog(String target, {String? postId}) async {
+    const reasons = ['محتوى مزعج أو سبام', 'محتوى غير لائق', 'تحرش أو إساءة', 'انتحال شخصية', 'سبب آخر'];
+    var sel = 0;
+    final t = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, st) => AlertDialog(
+          title: Text(postId != null ? 'إبلاغ عن المحتوى' : 'إبلاغ عن المستخدم'),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              for (var i = 0; i < reasons.length; i++)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: Icon(sel == i ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                      color: Theme.of(c).colorScheme.primary),
+                  title: Text(reasons[i]),
+                  onTap: () => st(() => sel = i),
+                ),
+              TextField(
+                controller: t,
+                maxLength: 200,
+                maxLines: 2,
+                decoration: InputDecoration(hintText: T('تفاصيل إضافية (اختياري)')),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('إرسال')),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    if (!netReady || !await cloud.ensure()) return snack('الإبلاغ يحتاج إنترنت');
+    final done = await srvInsert('reports', {
+      'reporter': me!.u,
+      'target': target,
+      'post_id': postId,
+      'reason': reasons[sel],
+      'details': t.text.trim(),
+    });
+    snack(done ? 'تم إرسال البلاغ، شكراً لك' : 'تعذر إرسال البلاغ');
+  }
+
+  void showBlocked() => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (c) => StatefulBuilder(
+          builder: (c, st) => SafeArea(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(c).size.height * 0.6),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Text('الحسابات المحظورة', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                ),
+                Flexible(
+                  child: blocked.isEmpty
+                      ? const Padding(padding: EdgeInsets.all(32), child: Text('مفيش حسابات محظورة'))
+                      : ListView(shrinkWrap: true, children: [
+                          for (final u in blocked.toList())
+                            ListTile(
+                              leading: av(prof(u).a),
+                              title: nm(u, prof(u).n),
+                              subtitle: Text('\u200e@$u'),
+                              trailing: TextButton(
+                                onPressed: () {
+                                  unblockUser(u);
+                                  st(() {});
+                                },
+                                child: const Text('إلغاء الحظر'),
+                              ),
+                            ),
+                        ]),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      );
+
+  Future<void> confirmDelete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('حذف الحساب'),
+        content: const Text(
+            'هيتم حذف حسابك وكل بياناتك نهائياً من السيرفر ومن الجهاز: الملف الشخصي والمنشورات والقصص والتعليقات والرسائل. مينفعش نرجّعها بعد كده.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(c).colorScheme.error),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('حذف نهائي'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await deleteAccount();
+  }
+
+  Future<void> purgeMedia() async {
+    try {
+      final id = cloud.uid;
+      if (id == null) return;
+      final names = <String>[];
+      for (final f in ['a', 'p', 's', 'r', 'm']) {
+        final r = await cloud.rest('POST', '/storage/v1/object/list/orx',
+            body: {'prefix': f, 'limit': 1000, 'search': id});
+        if (r.$1 == 200 && r.$2 is List) {
+          for (final o in (r.$2 as List)) {
+            final n = (o as Map)['name'];
+            if (n is String && n.contains(id)) names.add('$f/$n');
+          }
+        }
+      }
+      if (names.isNotEmpty) await cloud.rest('DELETE', '/storage/v1/object/orx', body: {'prefixes': names});
+    } catch (_) {}
+  }
+
+  Future<void> deleteAccount() async {
+    if (!await cloud.ensure()) return snack('لازم تكون متصل بالإنترنت عشان تحذف الحساب');
+    await purgeMedia();
+    final r = await cloud.rest('POST', '/rest/v1/rpc/delete_my_account', body: {});
+    if (r.$1 < 200 || r.$1 >= 300) return snack('تعذر حذف الحساب من السيرفر، جرّب تاني');
+    poll?.cancel();
+    socialTimer?.cancel();
+    try {
+      Nearby().stopAllEndpoints();
+      Nearby().stopAdvertising();
+      Nearby().stopDiscovery();
+    } catch (_) {}
+    try {
+      final d = await getApplicationDocumentsDirectory();
+      for (final f in d.listSync()) {
+        try {
+          f.deleteSync(recursive: true);
+        } catch (_) {}
+      }
+    } catch (_) {}
+    cloud.at = null;
+    cloud.rt = null;
+    cloud.uid = null;
+    lastMsgId = 0;
+    cavSrc = null;
+    cav = null;
+    xkp = null;
+    uCtl.clear();
+    nCtl.clear();
+    bCtl.clear();
+    kCtl.clear();
+    if (!mounted) return;
+    setState(() {
+      contacts.clear();
+      msgs.clear();
+      groups.clear();
+      stories.clear();
+      certs.clear();
+      posts.clear();
+      following.clear();
+      followers.clear();
+      myLikes.clear();
+      blocked.clear();
+      stats.clear();
+      explore.clear();
+      reelsList.clear();
+      userPosts.clear();
+      cprof.clear();
+      avSeen.clear();
+      outbox.clear();
+      ccount.clear();
+      tmpAv = null;
+      cur = null;
+      view = 'home';
+      editing = false;
+      on = false;
+      netReady = false;
+      netMsg = '';
+      me = null;
+    });
+  }
+
+  Future<void> showComments(Post p) async {
+    if (!p.srv) return snack('التعليقات بتحتاج إنترنت');
+    if (!netReady) return snack(netMsg.isEmpty ? 'الإنترنت لسه بيتجهز، جرّب بعد ثواني' : netMsg);
+    final t = TextEditingController();
+    var list = <Map>[];
+    var loading = true;
+    var started = false;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => StatefulBuilder(
+        builder: (c, st) {
+          Future<void> load() async {
+            final r = await cloud.rest('GET',
+                '/rest/v1/comments?post_id=eq.${Uri.encodeComponent(p.id)}&order=created_at.asc&limit=200');
+            if (r.$1 == 200 && r.$2 is List) {
+              list = [for (final e in (r.$2 as List)) Map.from(e as Map)];
+              ccount[p.id] = list.length;
+            }
+            if (mounted) {
+              st(() => loading = false);
+              setState(() {});
+            }
+          }
+
+          Future<void> send() async {
+            final body = t.text.trim();
+            if (body.isEmpty) return;
+            t.clear();
+            final id = '${me!.u}${DateTime.now().microsecondsSinceEpoch}';
+            final ok = await srvInsert('comments', {'id': id, 'post_id': p.id, 'author': me!.u, 'body': body});
+            if (!ok) snack('تعذر إرسال التعليق');
+            await load();
+          }
+
+          if (!started) {
+            started = true;
+            load();
+          }
+          final shown = list.where((e) => !blocked.contains(e['author'])).toList();
+          return Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, MediaQuery.of(c).viewInsets.bottom + 12),
+            child: SizedBox(
+              height: MediaQuery.of(c).size.height * 0.6,
+              child: Column(children: [
+                const Text('التعليقات', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : (shown.isEmpty
+                          ? empty(Icons.mode_comment_outlined, 'مفيش تعليقات لسه', 'كن أول من يعلّق')
+                          : ListView(children: [
+                              for (final e in shown)
+                                ListTile(
+                                  leading: av(prof(e['author'] as String).a, r: 16),
+                                  title: nm(e['author'] as String, prof(e['author'] as String).n,
+                                      st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                  subtitle: fw.Text((e['body'] ?? '') as String),
+                                  trailing: e['author'] == me!.u
+                                      ? IconButton(
+                                          icon: const Icon(Icons.delete_outline_rounded),
+                                          onPressed: () async {
+                                            await cloud.rest('DELETE',
+                                                '/rest/v1/comments?id=eq.${Uri.encodeComponent(e['id'] as String)}');
+                                            await load();
+                                          },
+                                        )
+                                      : userMenu(e['author'] as String, postId: p.id),
+                                ),
+                            ])),
+                ),
+                Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: t,
+                      minLines: 1,
+                      maxLines: 3,
+                      maxLength: 300,
+                      decoration: fld(c, hint: 'اكتب تعليق...').copyWith(counterText: ''),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(icon: const Icon(Icons.send_rounded), onPressed: send),
+                ]),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   // ---------- voice ----------
@@ -3202,9 +3600,9 @@ class _HomeState extends State<Home> {
                   : ListView(shrinkWrap: true, children: [
                       for (final e in items)
                         ListTile(
-                          leading: Icon(e.key.startsWith('g:') ? Icons.group : Icons.person),
+                          leading: Icon(e.key.startsWith('g:') ? Icons.group_rounded : Icons.person_rounded),
                           title: fw.Text(e.value),
-                          trailing: const Icon(Icons.send),
+                          trailing: const Icon(Icons.send_rounded),
                           onTap: () {
                             Navigator.pop(c);
                             sendShare(e.key, p);
@@ -3330,6 +3728,24 @@ class _HomeState extends State<Home> {
                     openPolicy();
                   },
                 ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.block_rounded),
+                  title: const Text('الحسابات المحظورة'),
+                  onTap: () {
+                    Navigator.pop(c);
+                    showBlocked();
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.delete_forever_rounded, color: Theme.of(c).colorScheme.error),
+                  title: Text('حذف الحساب', style: TextStyle(color: Theme.of(c).colorScheme.error)),
+                  onTap: () {
+                    Navigator.pop(c);
+                    confirmDelete();
+                  },
+                ),
               ]),
             ),
           ),
@@ -3359,7 +3775,7 @@ class _HomeState extends State<Home> {
       color: cs.surfaceContainerHighest,
       alignment: Alignment.center,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.image_outlined, size: 36, color: cs.onSurfaceVariant),
+        Icon(Icons.image_rounded, size: 36, color: cs.onSurfaceVariant),
         const SizedBox(height: 6),
         Text('الصورة بتتحمل لما تتصل بصاحبها', style: TextStyle(color: cs.onSurfaceVariant)),
       ]),
@@ -3419,7 +3835,9 @@ class _HomeState extends State<Home> {
                 ]),
               ),
               if (p.from == me!.u)
-                IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => delPost(p, refresh != null)),
+                IconButton(icon: const Icon(Icons.delete_outline_rounded), onPressed: () => delPost(p, refresh != null))
+              else
+                userMenu(p.from, postId: p.id),
             ]),
           ),
         ),
@@ -3428,7 +3846,7 @@ class _HomeState extends State<Home> {
           padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
           child: Row(children: [
             IconButton(
-              icon: Icon(liked ? Icons.favorite : Icons.favorite_border, color: liked ? Colors.red : null),
+              icon: Icon(liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: liked ? Colors.red : null),
               onPressed: () {
                 toggleLike(p);
                 refresh?.call();
@@ -3436,7 +3854,10 @@ class _HomeState extends State<Home> {
             ),
             Text('${p.likes.length}', style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(width: 4),
-            IconButton(icon: const Icon(Icons.share_outlined), onPressed: () => sharePost(p)),
+            IconButton(icon: const Icon(Icons.mode_comment_outlined), onPressed: () => showComments(p)),
+            Text('${ccount[p.id] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(width: 4),
+            IconButton(icon: const Icon(Icons.share_rounded), onPressed: () => sharePost(p)),
           ]),
         ),
         if (p.im && cap.isNotEmpty)
@@ -3466,10 +3887,10 @@ class _HomeState extends State<Home> {
   Widget feed() {
     final cs = Theme.of(context).colorScheme;
     final l = (exploreTab
-        ? explore.toList()
-        : posts.where((p) => p.kind == 'post' && (p.from == me!.u || following.contains(p.from))).toList())
+        ? explore.where((p) => !blocked.contains(p.from)).toList()
+        : posts.where((p) => p.kind == 'post' && !blocked.contains(p.from) && (p.from == me!.u || following.contains(p.from))).toList())
       ..sort((a, b) => b.at.compareTo(a.at));
-    final sug = contacts.values.where((p) => p.u != me!.u && !following.contains(p.u)).toList();
+    final sug = contacts.values.where((p) => p.u != me!.u && !blocked.contains(p.u) && !following.contains(p.u)).toList();
     return RefreshIndicator(
       onRefresh: pullSocial,
       child: ListView(
@@ -3565,7 +3986,7 @@ class _HomeState extends State<Home> {
       child: x.kind == 'reel'
           ? const Icon(Icons.play_circle_outline, color: Colors.white, size: 36)
           : (x.im
-              ? const Icon(Icons.image_outlined, color: Colors.white70)
+              ? const Icon(Icons.image_rounded, color: Colors.white70)
               : fw.Text(x.text ?? '',
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
@@ -3667,7 +4088,7 @@ class _HomeState extends State<Home> {
                 Expanded(
                   child: FilledButton.tonalIcon(
                       onPressed: openProfile,
-                      icon: const Icon(Icons.edit_outlined),
+                      icon: const Icon(Icons.edit_rounded),
                       label: const Text('تعديل الملف')),
                 ),
                 const SizedBox(width: 8),
@@ -3721,7 +4142,7 @@ class _HomeState extends State<Home> {
   // ---------- chat ----------
   Widget recBar(ColorScheme cs) => Row(children: [
         IconButton(
-            icon: Icon(Icons.delete_outline, color: cs.error), onPressed: () => stopRec(send: false)),
+            icon: Icon(Icons.delete_outline_rounded, color: cs.error), onPressed: () => stopRec(send: false)),
         Expanded(
           child: Container(
             height: 48,
@@ -3739,7 +4160,7 @@ class _HomeState extends State<Home> {
         const SizedBox(width: 8),
         IconButton.filled(
           style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-          icon: const Icon(Icons.send),
+          icon: const Icon(Icons.send_rounded),
           onPressed: () => stopRec(send: true),
         ),
       ]);
@@ -3751,7 +4172,7 @@ class _HomeState extends State<Home> {
         child: Container(
           decoration: BoxDecoration(color: cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(28)),
           child: Row(children: [
-            IconButton(icon: const Icon(Icons.image_outlined), onPressed: sendImg),
+            IconButton(icon: const Icon(Icons.image_rounded), onPressed: sendImg),
             Expanded(
               child: TextField(
                 controller: input,
@@ -3773,7 +4194,7 @@ class _HomeState extends State<Home> {
       const SizedBox(width: 8),
       IconButton.filled(
         style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-        icon: Icon(empty ? Icons.mic : Icons.send),
+        icon: Icon(empty ? Icons.mic_rounded : Icons.send_rounded),
         onPressed: empty ? startRec : sendText,
       ),
     ]);
@@ -3823,7 +4244,7 @@ class _HomeState extends State<Home> {
               color: fg.withAlpha(on ? 255 : 150), borderRadius: BorderRadius.circular(2)),
         ),
       const SizedBox(width: 8),
-      Icon(Icons.mic, size: 16, color: fg.withAlpha(180)),
+      Icon(Icons.mic_rounded, size: 16, color: fg.withAlpha(180)),
     ]);
   }
 
@@ -3877,6 +4298,10 @@ class _HomeState extends State<Home> {
                       )
                     else
                       fw.Text(m.t ?? '', style: TextStyle(fontSize: 16, height: 1.35, color: fg)),
+                    Padding(
+                      padding: EdgeInsets.only(top: 2, left: img ? 6 : 0, right: img ? 6 : 0, bottom: img ? 2 : 0),
+                      child: fw.Text(msgTime(m.i), style: TextStyle(fontSize: 10, color: fg.withAlpha(170))),
+                    ),
                   ],
                 ),
               ),
