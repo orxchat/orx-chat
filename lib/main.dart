@@ -143,6 +143,9 @@ const _en = <String, String>{
   'أتابعهم': 'Following',
   'الأصدقاء': 'Friends',
   'بحث': 'Search',
+  'الإشعارات': 'Notifications',
+  'مفيش إشعارات': 'No notifications',
+  'إشعارات الرسائل والمتابعات والتعليقات هتظهر هنا قريباً': 'Message, follow and comment notifications will show up here soon',
   'ابحث عن أشخاص ومنشورات...': 'Search people and posts...',
   'مفيش نتايج': 'No results',
   'قصة بنص': 'Text story',
@@ -461,6 +464,17 @@ InputDecoration fld(BuildContext c, {String? label, String? hint, IconData? icon
   );
 }
 
+class OrxScroll extends MaterialScrollBehavior {
+  const OrxScroll();
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
+  @override
+  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) => child;
+  @override
+  Widget buildScrollbar(BuildContext context, Widget child, ScrollableDetails details) => child;
+}
+
 class App extends StatelessWidget {
   const App({super.key});
   @override
@@ -480,6 +494,7 @@ class App extends StatelessWidget {
                 GlobalWidgetsLocalizations.delegate,
                 GlobalCupertinoLocalizations.delegate,
               ],
+              scrollBehavior: const OrxScroll(),
               themeMode: tm,
               theme: orxTheme(Brightness.light, accents[ai]),
               darkTheme: orxTheme(Brightness.dark, accents[ai]),
@@ -2152,6 +2167,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           actions: [
             if (otherProf) userMenu(profU),
             if (inChat && cur!.startsWith('p:')) userMenu(cur!.substring(2)),
+            if (!inChat && !otherProf && view != 'near')
+              IconButton(
+                  tooltip: T('الإشعارات'),
+                  icon: const Icon(Icons.notifications_none_rounded),
+                  onPressed: notifSheet),
             if (view == 'feed')
               IconButton(
                   tooltip: T('بحث'), icon: const Icon(Icons.search_rounded), onPressed: searchSheet),
@@ -4373,6 +4393,24 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ),
         ),
     ]);
+  }
+
+  void notifSheet() {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => SizedBox(
+        height: 300,
+        child: Column(children: [
+          Text(T('الإشعارات'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          Expanded(
+            child: empty(Icons.notifications_none_rounded, T('مفيش إشعارات'),
+                T('إشعارات الرسائل والمتابعات والتعليقات هتظهر هنا قريباً')),
+          ),
+        ]),
+      ),
+    );
   }
 
   void searchSheet() {
