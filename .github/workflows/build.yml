@@ -29,7 +29,22 @@ jobs:
           cp ic192.png $R/mipmap-xxxhdpi/ic_launcher.png
       - run: mkdir -p ~/.android && cp debug.keystore ~/.android/debug.keystore
       - run: flutter pub get
-      - run: flutter build apk --release
+      - name: Prepare Android SDK
+        continue-on-error: true
+        run: |
+          SDKM=$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager
+          yes | $SDKM --licenses > /dev/null || true
+          for i in 1 2 3; do
+            $SDKM "platforms;android-36" "build-tools;36.0.0" && break
+            echo "retry $i"; sleep 10
+          done
+      - name: Build APK
+        run: |
+          for i in 1 2 3; do
+            flutter build apk --release && exit 0
+            echo "build failed, retry $i"; sleep 15
+          done
+          exit 1
       - uses: actions/upload-artifact@v4
         with:
           name: orx-chat-apk
