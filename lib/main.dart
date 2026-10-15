@@ -203,6 +203,11 @@ const _en = <String, String>{
   'تعذر إرسال التعليق': "Couldn't send the comment",
   'مفيش تعليقات لسه': 'No comments yet',
   'كن أول من يعلّق': 'Be the first to comment',
+  'إعادة ضبط التطبيق': 'Reset app',
+  'إعادة ضبط': 'Reset',
+  'هيتمسح كل اللي على الجهاز ده (المحادثات والمفاتيح والإعدادات) وترجع تسجّل من الأول باسم مستخدم جديد. حسابك القديم على السيرفر مش هيتحذف (لو عايز تحذفه استخدم حذف الحساب).': 'Everything on this device (chats, keys, settings) will be erased and you will sign up again with a new username. Your old account on the server is not deleted (use Delete account for that).',
+  'حروف إنجليزية وأرقام و _ فقط، ومينفعش تتغيّر بعد كده': 'English letters, digits and _ only. It cannot be changed later',
+  'السيرفر مشغول، جرّب بعد شوية': 'The server is busy, try again shortly',
 };
 
 final _enPat = <(RegExp, String Function(RegExpMatch))>[
@@ -401,6 +406,7 @@ ThemeData orxTheme(Brightness b, [Color? sc]) {
       showDragHandle: true,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
     ),
+    popupMenuTheme: PopupMenuThemeData(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -639,6 +645,13 @@ class Cloud {
         err = noNet;
         return false;
       }
+      if (r.$1 >= 500 || r.$1 == 429) {
+        err = 'السيرفر مشغول، جرّب بعد شوية';
+        return false;
+      }
+      at = null;
+      rt = null;
+      uid = null;
     }
     if (uid == null) {
       final r = await rest('POST', '/auth/v1/signup', body: {'data': {}}, auth: false);
@@ -840,7 +853,7 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WidgetsBindingObserver {
   final uCtl = TextEditingController(), nCtl = TextEditingController(), input = TextEditingController(), kCtl = TextEditingController();
   Prof? me;
   String? tmpAv, cur;
@@ -859,6 +872,7 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     cloud.onSession = () {
       save();
     };
@@ -1185,7 +1199,8 @@ class _HomeState extends State<Home> {
         TextField(
             controller: uCtl,
             readOnly: editing,
-            decoration: fld(context, label: 'اسم المستخدم', icon: Icons.alternate_email)),
+            decoration: fld(context, label: 'اسم المستخدم', icon: Icons.alternate_email).copyWith(
+                helperText: editing ? null : T('حروف إنجليزية وأرقام و _ فقط، ومينفعش تتغيّر بعد كده'))),
         const SizedBox(height: 12),
         TextField(
             controller: bCtl,
@@ -1752,6 +1767,7 @@ class _HomeState extends State<Home> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     recTimer?.cancel();
     poll?.cancel();
     socialTimer?.cancel();
@@ -1833,55 +1849,77 @@ class _HomeState extends State<Home> {
 
   Widget navBar() {
     final cs = Theme.of(context).colorScheme;
+    final sel = view == 'feed' ? 1 : (view == 'reels' ? 2 : (view == 'profile' ? 3 : 0));
+    final items = <List<Object>>[
+      [Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'المحادثات'],
+      [Icons.grid_view_outlined, Icons.grid_view_rounded, 'المنشورات'],
+      [Icons.smart_display_outlined, Icons.smart_display_rounded, 'ريلز'],
+      [Icons.person_outline_rounded, Icons.person_rounded, 'حسابي'],
+    ];
+    void go(int i) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        back = 'home';
+        if (i == 3) {
+          view = 'profile';
+          profU = me!.u;
+        } else {
+          view = const ['home', 'feed', 'reels'][i];
+        }
+      });
+      if (i == 1 || i == 2) pullSocial();
+      if (i == 3) fetchUser(me!.u);
+    }
+
+    Widget item(int i) {
+      final active = sel == i;
+      final ic = items[i][0] as IconData;
+      final sic = items[i][1] as IconData;
+      final label = items[i][2] as String;
+      return Semantics(
+        button: true,
+        selected: active,
+        label: T(label),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => go(i),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            padding: EdgeInsets.symmetric(horizontal: active ? 18 : 13, vertical: 11),
+            decoration: BoxDecoration(
+              gradient: active
+                  ? LinearGradient(colors: [cs.primary, Color.lerp(cs.primary, cs.tertiary, 0.55)!])
+                  : null,
+              borderRadius: BorderRadius.circular(26),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(active ? sic : ic, size: 24, color: active ? cs.onPrimary : cs.onSurfaceVariant),
+              if (active) ...[
+                const SizedBox(width: 8),
+                Text(label, style: TextStyle(color: cs.onPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+              ],
+            ]),
+          ),
+        ),
+      );
+    }
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Material(
-          color: cs.surfaceContainer,
-          elevation: 6,
-          shadowColor: Colors.black54,
-          borderRadius: BorderRadius.circular(30),
-          clipBehavior: Clip.antiAlias,
-          child: NavigationBar(
-            height: 64,
-            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            surfaceTintColor: Colors.transparent,
-            indicatorColor: cs.primaryContainer,
-            selectedIndex: view == 'feed' ? 1 : (view == 'reels' ? 2 : (view == 'profile' ? 3 : 0)),
-            onDestinationSelected: (i) {
-              HapticFeedback.selectionClick();
-              setState(() {
-                back = 'home';
-                if (i == 3) {
-                  view = 'profile';
-                  profU = me!.u;
-                } else {
-                  view = const ['home', 'feed', 'reels'][i];
-                }
-              });
-              if (i == 1 || i == 2) pullSocial();
-              if (i == 3) fetchUser(me!.u);
-            },
-            destinations: [
-              NavigationDestination(
-                  icon: const Icon(Icons.chat_bubble_outline_rounded),
-                  selectedIcon: const Icon(Icons.chat_bubble_rounded),
-                  label: T('المحادثات')),
-              NavigationDestination(
-                  icon: const Icon(Icons.grid_view_outlined),
-                  selectedIcon: const Icon(Icons.grid_view_rounded),
-                  label: T('المنشورات')),
-              NavigationDestination(
-                  icon: const Icon(Icons.smart_display_outlined),
-                  selectedIcon: const Icon(Icons.smart_display_rounded),
-                  label: T('ريلز')),
-              NavigationDestination(
-                  icon: const Icon(Icons.person_outline_rounded),
-                  selectedIcon: const Icon(Icons.person_rounded),
-                  label: T('حسابي')),
-            ],
+        child: Container(
+          height: 66,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainer,
+            borderRadius: BorderRadius.circular(33),
+            border: Border.all(color: cs.outlineVariant.withAlpha(90)),
+            boxShadow: [BoxShadow(color: Colors.black.withAlpha(45), blurRadius: 20, offset: const Offset(0, 6))],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [for (var i = 0; i < items.length; i++) item(i)],
           ),
         ),
       ),
@@ -2020,6 +2058,11 @@ class _HomeState extends State<Home> {
                       style: TextStyle(color: cs.onSurfaceVariant)),
                 ]),
               ),
+              if (last != null)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(start: 8),
+                  child: Text(msgTime(last.i), style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                ),
             ]),
           ),
         ),
@@ -2207,6 +2250,16 @@ class _HomeState extends State<Home> {
   int lastMsgId = 0;
   Timer? poll;
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState st) {
+    if (st == AppLifecycleState.resumed) {
+      if (netReady) startNet();
+    } else if (st == AppLifecycleState.paused) {
+      poll?.cancel();
+      socialTimer?.cancel();
+    }
+  }
+
   String? uOf(String id) => who[id] ?? (id.startsWith('net:') ? id.substring(4) : null);
 
   bool isNear(String u) => who.entries.any((e) => e.value == u && peers.contains(e.key));
@@ -2311,7 +2364,7 @@ class _HomeState extends State<Home> {
     }
     if (r.$1 == 401 || r.$1 == 403 || r.$1 == 409) {
       netFatal = true;
-      netMsg = 'اسم المستخدم @${me!.u} مستخدم على الإنترنت من حساب تاني';
+      netMsg = 'اسم المستخدم @${me!.u} مستخدم على الإنترنت من حساب تاني. من المظهر اختار إعادة ضبط التطبيق وسجّل باسم تاني';
     } else {
       netMsg = r.$1 == -1 ? cloud.noNet : 'تعذر التسجيل على الإنترنت (${r.$1})';
     }
@@ -3082,6 +3135,26 @@ class _HomeState extends State<Home> {
     await purgeMedia();
     final r = await cloud.rest('POST', '/rest/v1/rpc/delete_my_account', body: {});
     if (r.$1 < 200 || r.$1 >= 300) return snack('تعذر حذف الحساب من السيرفر، جرّب تاني');
+    await wipeLocal();
+  }
+
+  Future<void> confirmReset() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('إعادة ضبط التطبيق'),
+        content: const Text(
+            'هيتمسح كل اللي على الجهاز ده (المحادثات والمفاتيح والإعدادات) وترجع تسجّل من الأول باسم مستخدم جديد. حسابك القديم على السيرفر مش هيتحذف (لو عايز تحذفه استخدم حذف الحساب).'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('إعادة ضبط')),
+        ],
+      ),
+    );
+    if (ok == true) await wipeLocal();
+  }
+
+  Future<void> wipeLocal() async {
     poll?.cancel();
     socialTimer?.cancel();
     try {
@@ -3128,6 +3201,8 @@ class _HomeState extends State<Home> {
       avSeen.clear();
       outbox.clear();
       ccount.clear();
+      who.clear();
+      peers.clear();
       tmpAv = null;
       cur = null;
       view = 'home';
@@ -3739,6 +3814,15 @@ class _HomeState extends State<Home> {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.restart_alt_rounded),
+                  title: const Text('إعادة ضبط التطبيق'),
+                  onTap: () {
+                    Navigator.pop(c);
+                    confirmReset();
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.delete_forever_rounded, color: Theme.of(c).colorScheme.error),
                   title: Text('حذف الحساب', style: TextStyle(color: Theme.of(c).colorScheme.error)),
                   onTap: () {
@@ -4271,7 +4355,13 @@ class _HomeState extends State<Home> {
               child: Container(
                 padding: img ? const EdgeInsets.all(4) : const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
-                  color: mine ? cs.primary : cs.surfaceContainerHigh,
+                  color: mine ? null : cs.surfaceContainerHigh,
+                  gradient: mine
+                      ? LinearGradient(
+                          colors: [cs.primary, Color.lerp(cs.primary, cs.tertiary, 0.55)!],
+                          begin: AlignmentDirectional.topStart,
+                          end: AlignmentDirectional.bottomEnd)
+                      : null,
                   borderRadius: BorderRadiusDirectional.only(
                     topStart: const Radius.circular(20),
                     topEnd: const Radius.circular(20),
