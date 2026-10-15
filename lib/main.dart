@@ -19,7 +19,7 @@ import 'package:cryptography/cryptography.dart'
 
 const svc = 'com.btchat.app';
 const strat = Strategy.P2P_CLUSTER;
-const seed = Color(0xFF0E7C66);
+const seed = Color(0xFF14C8E8);
 const ownerPk = '4WViu8FM9l7q8f0JmoawykKzCyzcRWJSFooFcGf88I8=';
 const storyColors = [
   Color(0xFF0E7C66),
@@ -30,7 +30,7 @@ const storyColors = [
 ];
 
 const accents = [
-  Color(0xFF0E7C66),
+  Color(0xFF14C8E8),
   Color(0xFF6A1B9A),
   Color(0xFFC2185B),
   Color(0xFFEF6C00),
@@ -38,8 +38,9 @@ const accents = [
   Color(0xFF455A64),
 ];
 final accentIdx = ValueNotifier<int>(0);
-final themeMode = ValueNotifier<ThemeMode>(ThemeMode.system);
+final themeMode = ValueNotifier<ThemeMode>(ThemeMode.dark);
 
+const kAutoVerifyFollowers = 100; // عدد المتابعين للتوثيق التلقائي (غيّره بعدين)
 const kContactEmail = 'orxchat.support@gmail.com';
 final langCode = ValueNotifier<String>('ar');
 bool get isEn => langCode.value == 'en';
@@ -137,6 +138,19 @@ const _en = <String, String>{
   'المتابعون': 'Followers',
   'يتابع': 'Following',
   'متصل بالإنترنت': 'Online',
+  'صديقك': 'Your friend',
+  'لك': 'For You',
+  'أتابعهم': 'Following',
+  'الأصدقاء': 'Friends',
+  'بحث': 'Search',
+  'ابحث عن أشخاص ومنشورات...': 'Search people and posts...',
+  'مفيش نتايج': 'No results',
+  'قصة بنص': 'Text story',
+  'تعديل الغلاف': 'Edit cover',
+  'نص على الغلاف': 'Text on cover',
+  'تم تحديث الغلاف': 'Cover updated',
+  'تعذر تحديث الغلاف': 'Could not update cover',
+  'اسحب لاختيار لقطة الغلاف': 'Drag to pick the cover frame',
   'جاري الاتصال بالإنترنت...': 'Connecting to the internet...',
   'تعديل الملف': 'Edit profile',
   'إلغاء المتابعة': 'Unfollow',
@@ -400,7 +414,18 @@ Future<void> main() async {
 }
 
 ThemeData orxTheme(Brightness b, [Color? sc]) {
-  final cs = ColorScheme.fromSeed(seedColor: sc ?? seed, brightness: b);
+  var cs = ColorScheme.fromSeed(seedColor: sc ?? seed, brightness: b);
+  if (b == Brightness.dark) {
+    cs = cs.copyWith(
+      surface: const Color(0xFF050B18),
+      surfaceContainerLowest: const Color(0xFF030813),
+      surfaceContainerLow: const Color(0xFF08101F),
+      surfaceContainer: const Color(0xFF0A1428),
+      surfaceContainerHigh: const Color(0xFF0F1B33),
+      surfaceContainerHighest: const Color(0xFF14233F),
+      outlineVariant: cs.primary.withOpacity(0.25),
+    );
+  }
   return ThemeData(
     useMaterial3: true,
     colorScheme: cs,
@@ -768,12 +793,13 @@ class Msg {
 
 class Post {
   final String id, from;
-  String? text, img, ip;
+  String? text, img, ip, ctxt;
+  int? cms;
   bool im, srv;
   String kind;
   final DateTime at;
   Set<String> likes;
-  Post(this.id, this.from, {this.text, this.img, this.ip, this.im = false, this.srv = false, this.kind = 'post', DateTime? at, Set<String>? likes})
+  Post(this.id, this.from, {this.text, this.img, this.ip, this.im = false, this.srv = false, this.kind = 'post', this.cms, this.ctxt, DateTime? at, Set<String>? likes})
       : at = at ?? DateTime.now(),
         likes = likes ?? {};
   Color get color =>
@@ -786,6 +812,8 @@ class Post {
         'm': im,
         'ip': ip,
         'kd': kind,
+        'cm': cms,
+        'ct': ctxt,
         'sv': srv,
         'a': at.millisecondsSinceEpoch,
         'l': likes.toList(),
@@ -796,6 +824,8 @@ class Post {
       im: j['m'] == true,
       ip: j['ip'],
       kind: (j['kd'] ?? 'post') as String,
+      cms: j['cm'] as int?,
+      ctxt: j['ct'] as String?,
       srv: j['sv'] == true,
       at: DateTime.fromMillisecondsSinceEpoch(j['a']),
       likes: Set<String>.from((j['l'] as List?) ?? []));
@@ -855,7 +885,7 @@ class _StoryViewState extends State<StoryView> {
       final liked = widget.liked?.call(s0) ?? false;
       bottom = IconButton(
         iconSize: 36,
-        icon: Icon(liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: liked ? Colors.red : Colors.white),
+        icon: SparkIcon(liked: liked, size: 36, off: Colors.white),
         onPressed: () {
           widget.onLike!(s0);
           setState(() {});
@@ -1115,7 +1145,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (k == null) return null;
     if (k == ownerPk) return 'o';
     final c = certs[k];
-    return (c != null && c['r'] == 'v' && c['u'] == u) ? 'v' : null;
+    if (c != null && c['r'] == 'v' && c['u'] == u) return 'v';
+    final fc = (me != null && u == me!.u) ? followers.length : (stats[u]?[0] ?? 0);
+    return fc >= kAutoVerifyFollowers ? 'v' : null;
   }
 
   Widget badge(String u, {double s = 16}) {
@@ -1130,6 +1162,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Widget nm(String u, String text, {TextStyle? st}) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [Flexible(child: fw.Text(text, style: st, overflow: TextOverflow.ellipsis)), badge(u)]);
+
+  Widget friendTag(String u) => (me != null && u != me!.u && following.contains(u) && followers.contains(u))
+      ? Text('صديقك',
+          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.55)))
+      : const SizedBox.shrink();
 
   Future<void> hello(String id) async {
     sendJ(id, {
@@ -1839,7 +1876,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                             liked: (st) => st.sid != null && myStoryLikes.contains(st.sid),
                             onLike: e.key == me!.u ? null : (st) => toggleStoryLike(st),
                             stat: e.key == me!.u
-                                ? (st) => '👁 ${sviews[st.sid] ?? 0}    ❤ ${slikes[st.sid] ?? 0}'
+                                ? (st) => '👁 ${sviews[st.sid] ?? 0}    ⚡ ${slikes[st.sid] ?? 0}'
                                 : null,
                           ))),
               true,
@@ -1974,52 +2011,110 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       final ic = items[i][0] as IconData;
       final sic = items[i][1] as IconData;
       final label = items[i][2] as String;
-      return Semantics(
-        button: true,
-        selected: active,
-        label: T(label),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => go(i),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-            padding: EdgeInsets.symmetric(horizontal: active ? 18 : 13, vertical: 11),
-            decoration: BoxDecoration(
-              gradient: active
-                  ? LinearGradient(colors: [cs.primary, Color.lerp(cs.primary, cs.tertiary, 0.55)!])
-                  : null,
-              borderRadius: BorderRadius.circular(26),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(active ? sic : ic, size: 24, color: active ? cs.onPrimary : cs.onSurfaceVariant),
-              if (active) ...[
-                const SizedBox(width: 8),
-                Text(label, style: TextStyle(color: cs.onPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
-              ],
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: active,
+          label: T(label),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => go(i),
+            child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(active ? sic : ic, size: 24, color: active ? cs.primary : cs.onSurfaceVariant),
+              const SizedBox(height: 3),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                      color: active ? cs.primary : cs.onSurfaceVariant)),
+              const SizedBox(height: 3),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                width: active ? 18 : 0,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: cs.primary,
+                  borderRadius: BorderRadius.circular(2),
+                  boxShadow: active ? [BoxShadow(color: cs.primary.withOpacity(0.7), blurRadius: 8)] : null,
+                ),
+              ),
             ]),
           ),
         ),
       );
     }
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Container(
-          height: 66,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainer,
-            borderRadius: BorderRadius.circular(33),
-            border: Border.all(color: cs.outlineVariant.withAlpha(90)),
-            boxShadow: [BoxShadow(color: Colors.black.withAlpha(45), blurRadius: 20, offset: const Offset(0, 6))],
+    Widget plus() => Expanded(
+          child: Center(
+            child: GestureDetector(
+              onTap: createMenu,
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(colors: [cs.primary, Color.lerp(cs.primary, cs.tertiary, 0.5)!]),
+                  boxShadow: [BoxShadow(color: cs.primary.withOpacity(0.55), blurRadius: 18, spreadRadius: 1)],
+                ),
+                child: Icon(Icons.add_rounded, color: cs.onPrimary, size: 30),
+              ),
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [for (var i = 0; i < items.length; i++) item(i)],
-          ),
+        );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainer,
+        border: Border(top: BorderSide(color: cs.primary.withOpacity(0.25))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 68,
+          child: Row(children: [item(0), item(1), plus(), item(2), item(3)]),
         ),
+      ),
+    );
+  }
+
+  void createMenu() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.add_photo_alternate_outlined),
+            title: const Text('منشور جديد'),
+            onTap: () {
+              Navigator.pop(c);
+              newPost();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.smart_display_outlined),
+            title: const Text('ريل جديد'),
+            onTap: () {
+              Navigator.pop(c);
+              newReel();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.image_outlined),
+            title: const Text('قصة بصورة'),
+            onTap: () {
+              Navigator.pop(c);
+              imgStory();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.text_fields_rounded),
+            title: const Text('قصة بنص'),
+            onTap: () {
+              Navigator.pop(c);
+              textStory();
+            },
+          ),
+        ]),
       ),
     );
   }
@@ -2057,6 +2152,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           actions: [
             if (otherProf) userMenu(profU),
             if (inChat && cur!.startsWith('p:')) userMenu(cur!.substring(2)),
+            if (view == 'feed')
+              IconButton(
+                  tooltip: T('بحث'), icon: const Icon(Icons.search_rounded), onPressed: searchSheet),
             if (view == 'home')
               IconButton(
                   tooltip: T('بحث عن أجهزة قريبة'),
@@ -2714,7 +2812,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   String nameState = '';
   final ccount = <String, int>{};
   bool certsPushed = false;
-  bool chatNet = true, uploading = false, exploreTab = false, socialBusy = false;
+  bool chatNet = true, uploading = false, socialBusy = false;
+  int feedTab = 0; // 0 لك، 1 أتابعهم، 2 الأصدقاء
+  bool get exploreTab => feedTab == 0;
   int reelIdx = 0;
   PageController reelCtl = PageController();
   Timer? socialTimer;
@@ -2734,6 +2834,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           text: r['body'] as String?,
           ip: media,
           kind: kind,
+          cms: (r['cover_ms'] as num?)?.toInt(),
+          ctxt: r['cover_text'] as String?,
           srv: true,
           im: kind == 'post' && media != null,
           at: DateTime.parse(r['created_at'] as String).toLocal());
@@ -2749,6 +2851,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     } else {
       ex.srv = true;
       ex.ip = p.ip;
+      ex.cms = p.cms;
+      ex.ctxt = p.ctxt;
     }
   }
 
@@ -2950,6 +3054,28 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> editCover(Post p) async {
+    final r = await showModalBottomSheet<(int, String)>(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => CoverEditor(pubUrl(p.ip ?? ''), p.cms ?? 500, p.ctxt ?? ''),
+    );
+    if (r == null) return;
+    final res = await cloud.rest('PATCH', '/rest/v1/posts?id=eq.${Uri.encodeComponent(p.id)}',
+        headers: {'Prefer': 'return=minimal'},
+        body: {'cover_ms': r.$1, 'cover_text': r.$2.isEmpty ? null : r.$2});
+    if (res.$1 == 204 || res.$1 == 200) {
+      setState(() {
+        p.cms = r.$1;
+        p.ctxt = r.$2.isEmpty ? null : r.$2;
+      });
+      save();
+      snack('تم تحديث الغلاف');
+    } else {
+      snack('تعذر تحديث الغلاف');
+    }
+  }
+
   Widget reelPage(Post p, bool active) {
     final pr = prof(p.from);
     final liked = myLikes.contains(p.id);
@@ -3001,6 +3127,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               const SizedBox(height: 8),
               fw.Text(cap, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white)),
             ],
+            if (p.from == me!.u)
+              TextButton.icon(
+                style: TextButton.styleFrom(foregroundColor: Colors.white, visualDensity: VisualDensity.compact),
+                onPressed: () => editCover(p),
+                icon: const Icon(Icons.photo_size_select_actual_outlined, size: 18),
+                label: const Text('تعديل الغلاف'),
+              ),
           ]),
         ),
         PositionedDirectional(
@@ -3008,7 +3141,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           bottom: 24,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             IconButton(
-              icon: Icon(liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: liked ? Colors.red : Colors.white, size: 32),
+              icon: SparkIcon(liked: liked, size: 32, off: Colors.white),
               onPressed: () => toggleLike(p),
             ),
             fw.Text('${p.likes.length}', style: white),
@@ -4149,6 +4282,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   nm(p.from, pr.n, st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   Text(ago(p.at), style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                  friendTag(p.from),
                 ]),
               ),
               if (p.from == me!.u)
@@ -4163,7 +4297,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
           child: Row(children: [
             IconButton(
-              icon: Icon(liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: liked ? Colors.red : null),
+              icon: SparkIcon(liked: liked, size: 26),
               onPressed: () {
                 toggleLike(p);
                 refresh?.call();
@@ -4207,11 +4341,114 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         ),
       );
 
+  Widget feedTabs() {
+    final cs = Theme.of(context).colorScheme;
+    const names = ['لك', 'أتابعهم', 'الأصدقاء'];
+    return Row(children: [
+      for (var i = 0; i < 3; i++)
+        Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => feedTab = i),
+            child: Column(children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 6),
+                child: Text(names[i],
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: feedTab == i ? FontWeight.w800 : FontWeight.w500,
+                        color: feedTab == i ? cs.primary : cs.onSurfaceVariant)),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                height: 3,
+                width: feedTab == i ? 30 : 0,
+                decoration: BoxDecoration(
+                  color: cs.primary,
+                  borderRadius: BorderRadius.circular(2),
+                  boxShadow: feedTab == i ? [BoxShadow(color: cs.primary.withOpacity(0.7), blurRadius: 8)] : null,
+                ),
+              ),
+            ]),
+          ),
+        ),
+    ]);
+  }
+
+  void searchSheet() {
+    final q = TextEditingController();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => StatefulBuilder(builder: (c, setS) {
+        final t = q.text.trim().toLowerCase();
+        final us = t.isEmpty
+            ? <Prof>[]
+            : contacts.values
+                .where((p) => !blocked.contains(p.u) && (p.u.toLowerCase().contains(t) || p.n.toLowerCase().contains(t)))
+                .take(8)
+                .toList();
+        final seen = <String>{};
+        final ps = t.isEmpty
+            ? <Post>[]
+            : [...posts, ...explore]
+                .where((p) => p.kind == 'post' && !blocked.contains(p.from) && (p.text ?? '').toLowerCase().contains(t) && seen.add(p.id))
+                .take(12)
+                .toList();
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(c).viewInsets.bottom),
+            child: SizedBox(
+              height: MediaQuery.of(c).size.height * 0.7,
+              child: Column(children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: TextField(
+                    controller: q,
+                    autofocus: true,
+                    onChanged: (_) => setS(() {}),
+                    decoration: fld(c, hint: 'ابحث عن أشخاص ومنشورات...', icon: Icons.search_rounded),
+                  ),
+                ),
+                Expanded(
+                  child: ListView(children: [
+                    for (final p in us)
+                      ListTile(
+                        leading: av(p.a, r: 20),
+                        title: fw.Text(p.n),
+                        subtitle: Text('\u200e@${p.u}'),
+                        onTap: () {
+                          Navigator.pop(c);
+                          openProf(p.u);
+                        },
+                      ),
+                    for (final p in ps)
+                      ListTile(
+                        leading: const Icon(Icons.article_outlined),
+                        title: fw.Text(p.text ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
+                        subtitle: fw.Text(prof(p.from).n),
+                        onTap: () {
+                          Navigator.pop(c);
+                          showPost(p);
+                        },
+                      ),
+                    if (t.isNotEmpty && us.isEmpty && ps.isEmpty)
+                      Padding(padding: const EdgeInsets.all(24), child: Center(child: Text('مفيش نتايج'))),
+                  ]),
+                ),
+              ]),
+            ),
+          ),
+        );
+      }),
+    ).whenComplete(q.dispose);
+  }
+
   Widget feed() {
     final cs = Theme.of(context).colorScheme;
     final l = (exploreTab
         ? explore.where((p) => !blocked.contains(p.from)).toList()
-        : posts.where((p) => p.kind == 'post' && !blocked.contains(p.from) && (p.from == me!.u || following.contains(p.from))).toList())
+        : posts.where((p) => p.kind == 'post' && !blocked.contains(p.from) && (p.from == me!.u || (feedTab == 2 ? (following.contains(p.from) && followers.contains(p.from)) : following.contains(p.from)))).toList())
       ..sort((a, b) => b.at.compareTo(a.at));
     final sug = contacts.values.where((p) => p.u != me!.u && !blocked.contains(p.u) && !following.contains(p.u)).toList();
     return RefreshIndicator(
@@ -4241,18 +4478,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: SegmentedButton<bool>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(value: false, label: Text('أصدقائي')),
-                ButtonSegment(value: true, label: Text('اكتشاف')),
-              ],
-              selected: {exploreTab},
-              onSelectionChanged: (s) => setState(() => exploreTab = s.first),
-            ),
-          ),
+          feedTabs(),
           if (!exploreTab && sug.isNotEmpty) ...[
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -4324,7 +4550,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
     );
     Widget child;
-    if (ok) {
+    if (x.kind == 'reel' && x.ip != null) {
+      child = ReelCover(pubUrl(x.ip!), x.cms ?? 500, x.ctxt ?? '', x.color, key: ValueKey('cv${x.id}_${x.cms}_${x.ctxt}'));
+    } else if (ok) {
       child = Image.file(File(x.img!), fit: BoxFit.cover);
     } else if (x.im && x.ip != null) {
       child = Image.network(pubUrl(x.ip!), fit: BoxFit.cover, errorBuilder: (c, e, s) => plain);
@@ -4386,18 +4614,30 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           nm(u, p.n, st: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
           Text('\u200e@$u', style: TextStyle(color: cs.onSurfaceVariant)),
+          friendTag(u),
           if ((p.bio ?? '').isNotEmpty) ...[const SizedBox(height: 6), fw.Text(p.bio!)],
           if (mine) ...[
             const SizedBox(height: 8),
             Row(children: [
-              Icon(netReady ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
-                  size: 16, color: netReady ? Colors.green : cs.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                    netReady ? 'متصل بالإنترنت' : (netMsg.isEmpty ? 'جاري الاتصال بالإنترنت...' : netMsg),
-                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-              ),
+              if (netReady)
+                Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22C55E),
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: const Color(0xFF22C55E).withOpacity(0.75), blurRadius: 8, spreadRadius: 2)],
+                  ),
+                )
+              else ...[
+                Icon(Icons.cloud_off_outlined, size: 16, color: cs.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(netMsg.isEmpty ? 'جاري الاتصال بالإنترنت...' : netMsg,
+                      style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                ),
+              ],
             ]),
             if (!netReady)
               Align(
@@ -4659,6 +4899,191 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 ]),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class SparkIcon extends StatelessWidget {
+  final bool liked;
+  final double size;
+  final Color? off;
+  const SparkIcon({super.key, required this.liked, this.size = 24, this.off});
+
+  @override
+  Widget build(BuildContext context) {
+    const on = Color(0xFFFFC400);
+    final offc = off ?? Theme.of(context).colorScheme.onSurfaceVariant;
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: liked ? 1 : 0),
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOut,
+      builder: (c, t, _) {
+        final g = t.clamp(0.0, 1.0);
+        return Transform.scale(
+          scale: 1 + 0.35 * sin(g * pi),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: g > 0 ? [BoxShadow(color: on.withOpacity(0.6 * g), blurRadius: 16 * g, spreadRadius: 2 * g)] : null,
+            ),
+            child: Icon(liked ? Icons.bolt_rounded : Icons.bolt_outlined, size: size, color: Color.lerp(offc, on, g)),
+          ),
+        );
+      },
+    );
+  }
+}
+
+
+class ReelCover extends StatefulWidget {
+  final String url, text;
+  final int ms;
+  final Color color;
+  const ReelCover(this.url, this.ms, this.text, this.color, {super.key});
+  @override
+  State<ReelCover> createState() => _ReelCoverState();
+}
+
+class _ReelCoverState extends State<ReelCover> {
+  VideoPlayerController? c;
+  bool ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final k = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+      c = k;
+      await k.initialize();
+      final mx = k.value.duration.inMilliseconds;
+      await k.seekTo(Duration(milliseconds: widget.ms.clamp(0, mx > 0 ? mx : 0)));
+      if (mounted) setState(() => ready = true);
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    c?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final k = c;
+    return Stack(fit: StackFit.expand, children: [
+      if (ready && k != null)
+        FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(width: k.value.size.width, height: k.value.size.height, child: VideoPlayer(k)),
+        )
+      else
+        Container(color: widget.color, alignment: Alignment.center, child: const Icon(Icons.play_circle_outline, color: Colors.white, size: 36)),
+      if (widget.text.isNotEmpty)
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: fw.Text(widget.text,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13, shadows: [Shadow(blurRadius: 6, color: Colors.black)])),
+          ),
+        ),
+    ]);
+  }
+}
+
+class CoverEditor extends StatefulWidget {
+  final String url, text;
+  final int ms;
+  const CoverEditor(this.url, this.ms, this.text, {super.key});
+  @override
+  State<CoverEditor> createState() => _CoverEditorState();
+}
+
+class _CoverEditorState extends State<CoverEditor> {
+  late final VideoPlayerController c = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+  late final TextEditingController t = TextEditingController(text: widget.text);
+  bool ready = false;
+  double pos = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    pos = widget.ms.toDouble();
+    c.initialize().then((_) async {
+      if (!mounted) return;
+      final mx = c.value.duration.inMilliseconds.toDouble();
+      pos = pos.clamp(0.0, mx);
+      await c.seekTo(Duration(milliseconds: pos.toInt()));
+      if (mounted) setState(() => ready = true);
+    }).catchError((_) {});
+  }
+
+  @override
+  void dispose() {
+    c.dispose();
+    t.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mx = ready ? c.value.duration.inMilliseconds.toDouble() : 1.0;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            SizedBox(
+              height: 300,
+              child: AspectRatio(
+                aspectRatio: ready ? c.value.aspectRatio : 9 / 16,
+                child: Stack(fit: StackFit.expand, children: [
+                  if (ready) VideoPlayer(c) else const Center(child: CircularProgressIndicator()),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: t,
+                    builder: (_, v, __) => v.text.trim().isEmpty
+                        ? const SizedBox.shrink()
+                        : Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: fw.Text(v.text.trim(),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18, shadows: [Shadow(blurRadius: 6, color: Colors.black)])),
+                            ),
+                          ),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text('اسحب لاختيار لقطة الغلاف'),
+            Slider(
+              value: pos.clamp(0.0, mx),
+              min: 0,
+              max: mx,
+              onChanged: ready ? (v) => setState(() => pos = v) : null,
+              onChangeEnd: ready ? (v) => c.seekTo(Duration(milliseconds: v.toInt())) : null,
+            ),
+            TextField(controller: t, maxLength: 40, decoration: InputDecoration(labelText: T('نص على الغلاف'))),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: ready ? () => Navigator.pop(context, (pos.toInt(), t.text.trim())) : null,
+                child: const Text('حفظ'),
+              ),
+            ),
+          ]),
         ),
       ),
     );
