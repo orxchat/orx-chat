@@ -89,7 +89,7 @@ const _en = <String, String>{
   'المحادثات': 'Chats',
   'المنشورات': 'Posts',
   'القريبة': 'Nearby',
-  'حسابي': 'Me',
+  'حسابي': 'Profile',
   'المظهر': 'Settings',
   'إضافة صديق': 'Add friend',
   'ابدأ المحادثة': 'Start a conversation',
@@ -143,6 +143,8 @@ const _en = <String, String>{
   'أتابعهم': 'Following',
   'الأصدقاء': 'Friends',
   'بحث': 'Search',
+  'الرئيسية': 'Home',
+  'اكتشف': 'Discover',
   'الإشعارات': 'Notifications',
   'مفيش إشعارات': 'No notifications',
   'إشعارات الرسائل والمتابعات والتعليقات هتظهر هنا قريباً': 'Message, follow and comment notifications will show up here soon',
@@ -1999,11 +2001,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Widget navBar() {
     final cs = Theme.of(context).colorScheme;
-    final sel = view == 'feed' ? 1 : (view == 'reels' ? 2 : (view == 'profile' ? 3 : 0));
+    // 0 الرئيسية (منشورات) | 1 اكتشف (ريلز) | 2 الأصدقاء (محادثات) | 3 حسابي
+    final sel = view == 'feed' ? 0 : (view == 'reels' ? 1 : (view == 'profile' ? 3 : 2));
     final items = <List<Object>>[
-      [Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'المحادثات'],
-      [Icons.grid_view_outlined, Icons.grid_view_rounded, 'المنشورات'],
-      [Icons.smart_display_outlined, Icons.smart_display_rounded, 'ريلز'],
+      [Icons.home_outlined, Icons.home_rounded, 'الرئيسية'],
+      [Icons.explore_outlined, Icons.explore_rounded, 'اكتشف'],
+      [Icons.people_outline_rounded, Icons.people_rounded, 'الأصدقاء'],
       [Icons.person_outline_rounded, Icons.person_rounded, 'حسابي'],
     ];
     void go(int i) {
@@ -2014,10 +2017,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           view = 'profile';
           profU = me!.u;
         } else {
-          view = const ['home', 'feed', 'reels'][i];
+          view = const ['feed', 'reels', 'home'][i];
         }
       });
-      if (i == 1 || i == 2) pullSocial();
+      if (i == 0 || i == 1) pullSocial();
       if (i == 3) fetchUser(me!.u);
     }
 
@@ -2026,6 +2029,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       final ic = items[i][0] as IconData;
       final sic = items[i][1] as IconData;
       final label = items[i][2] as String;
+      final col = active ? cs.primary : cs.onSurfaceVariant;
       return Expanded(
         child: Semantics(
           button: true,
@@ -2035,24 +2039,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             behavior: HitTestBehavior.opaque,
             onTap: () => go(i),
             child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(active ? sic : ic, size: 24, color: active ? cs.primary : cs.onSurfaceVariant),
-              const SizedBox(height: 3),
+              Icon(active ? sic : ic,
+                  size: 27,
+                  color: col,
+                  shadows: active ? [Shadow(color: cs.primary.withOpacity(0.8), blurRadius: 12)] : null),
+              const SizedBox(height: 4),
               Text(label,
                   style: TextStyle(
-                      fontSize: 10.5,
+                      fontSize: 11.5,
                       fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                      color: active ? cs.primary : cs.onSurfaceVariant)),
-              const SizedBox(height: 3),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: active ? 18 : 0,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: cs.primary,
-                  borderRadius: BorderRadius.circular(2),
-                  boxShadow: active ? [BoxShadow(color: cs.primary.withOpacity(0.7), blurRadius: 8)] : null,
-                ),
-              ),
+                      color: col,
+                      shadows: active ? [Shadow(color: cs.primary.withOpacity(0.6), blurRadius: 8)] : null)),
             ]),
           ),
         ),
@@ -2064,14 +2061,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             child: GestureDetector(
               onTap: createMenu,
               child: Container(
-                width: 52,
-                height: 52,
+                width: 58,
+                height: 58,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(colors: [cs.primary, Color.lerp(cs.primary, cs.tertiary, 0.5)!]),
-                  boxShadow: [BoxShadow(color: cs.primary.withOpacity(0.55), blurRadius: 18, spreadRadius: 1)],
+                  gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [cs.primary, Color.lerp(cs.primary, cs.tertiary, 0.6)!]),
+                  boxShadow: [BoxShadow(color: cs.primary.withOpacity(0.6), blurRadius: 20, spreadRadius: 1)],
                 ),
-                child: Icon(Icons.add_rounded, color: cs.onPrimary, size: 30),
+                child: Icon(Icons.add_rounded, color: Color.lerp(cs.onPrimary, Colors.black, 0.4), size: 34),
               ),
             ),
           ),
@@ -2080,12 +2080,14 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainer,
-        border: Border(top: BorderSide(color: cs.primary.withOpacity(0.25))),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        border: Border.all(color: cs.primary.withOpacity(0.35)),
+        boxShadow: [BoxShadow(color: cs.primary.withOpacity(0.18), blurRadius: 16, offset: const Offset(0, -2))],
       ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 68,
+          height: 76,
           child: Row(children: [item(0), item(1), plus(), item(2), item(3)]),
         ),
       ),
