@@ -208,6 +208,9 @@ const _en = <String, String>{
   'هيتمسح كل اللي على الجهاز ده (المحادثات والمفاتيح والإعدادات) وترجع تسجّل من الأول باسم مستخدم جديد. حسابك القديم على السيرفر مش هيتحذف (لو عايز تحذفه استخدم حذف الحساب).': 'Everything on this device (chats, keys, settings) will be erased and you will sign up again with a new username. Your old account on the server is not deleted (use Delete account for that).',
   'حروف إنجليزية وأرقام و _ فقط، ومينفعش تتغيّر بعد كده': 'English letters, digits and _ only. It cannot be changed later',
   'السيرفر مشغول، جرّب بعد شوية': 'The server is busy, try again shortly',
+  'الاسم متاح ✓': 'Name is available ✓',
+  'بنتأكد من الاسم...': 'Checking the name...',
+  'الاسم ده محجوز لشخص تاني، اختار اسم مختلف': 'This username belongs to someone else, choose a different one',
 };
 
 final _enPat = <(RegExp, String Function(RegExpMatch))>[
@@ -282,7 +285,7 @@ ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال ال
 • ما يمكن للخادم رؤيته: المعرّف المجهول للحساب، واسم المرسل، ومعرّف المستلم، ووقت وحجم الرسائل.
 
 4) الملف العام والمحتوى العام
-عند استخدام ميزات الإنترنت، تُخزَّن بيانات ملفك (اسم المستخدم، الاسم، النبذة، الصورة، المفاتيح العامة) على الخادم ويمكن لأي شخص العثور عليها بالبحث عن اسم المستخدم. لا تضع معلومات حساسة في ملفك. المنشورات والريلز والقصص والتعليقات وصورها وفيديوهاتها والإعجابات محتوى عام: تُخزَّن على الخادم دون تشفير من طرف إلى طرف ويمكن لمستخدمي التطبيق الآخرين رؤيتها. لا تنشر ما تريد إبقاءه خاصا. يمكنك الإبلاغ عن أي مستخدم أو محتوى وحظر أي مستخدم من داخل التطبيق، وقد نراجع البلاغات ونحذف المحتوى المخالف أو نوقف الحسابات المسيئة.
+عند استخدام ميزات الإنترنت، تُخزَّن بيانات ملفك (اسم المستخدم، الاسم، النبذة، الصورة، المفاتيح العامة) على الخادم ويمكن لأي شخص العثور عليها بالبحث عن اسم المستخدم. لا تضع معلومات حساسة في ملفك. المنشورات والريلز والقصص والتعليقات وصورها وفيديوهاتها والإعجابات محتوى عام: تُخزَّن على الخادم دون تشفير من طرف إلى طرف ويمكن لمستخدمي التطبيق الآخرين رؤيتها. لا تنشر ما تريد إبقاءه خاصا. يمكنك الإبلاغ عن أي مستخدم أو محتوى وحظر أي مستخدم من داخل التطبيق، وقد نراجع البلاغات ونحذف المحتوى المخالف أو نوقف الحسابات المسيئة. كما نسجّل مشاهداتك للمنشورات والقصص وإعجاباتك على القصص ليرى صاحب المحتوى الأعداد فقط.
 
 5) المعلومات المخزنة على جهازك
 تُخزَّن المحادثات وجهات الاتصال والمنشورات والقصص والإعدادات ومفاتيحك الخاصة في مساحة التطبيق الخاصة على هاتفك. عند حذف التطبيق أو مسح بياناته تُحذف من جهازك ولا نستطيع استرجاعها.
@@ -331,7 +334,7 @@ ORX is a chat app that works over Bluetooth / nearby connections and over the in
 • What the server can see: the anonymous account ID, the sender's username, the recipient's ID, and the time and size of messages.
 
 4) Public profile and public content
-When you use internet features, your profile data (username, display name, bio, photo, public keys) is stored on the server and can be found by anyone who searches for your username. Do not put sensitive information in your profile. Posts, reels, stories, comments, their photos and videos, and likes are public content: they are stored on the server without end-to-end encryption and can be seen by other users of the app. Do not publish anything you want to keep private. You can report any user or content and block any user from inside the app. We may review reports and remove violating content or suspend abusive accounts.
+When you use internet features, your profile data (username, display name, bio, photo, public keys) is stored on the server and can be found by anyone who searches for your username. Do not put sensitive information in your profile. Posts, reels, stories, comments, their photos and videos, and likes are public content: they are stored on the server without end-to-end encryption and can be seen by other users of the app. Do not publish anything you want to keep private. You can report any user or content and block any user from inside the app. We may review reports and remove violating content or suspend abusive accounts. We also record which posts and stories you view and your likes on stories, so that the content owner can see counts only.
 
 5) Information stored on your device
 Chats, contacts, posts, stories, settings and your private keys are kept in the app's private storage on your phone. If you uninstall the app or clear its data they are deleted from your device, and we cannot restore them.
@@ -819,32 +822,99 @@ class Story {
       Story(j['f'], text: j['t'], img: j['i'], sid: j['x'], at: DateTime.fromMillisecondsSinceEpoch(j['a']));
 }
 
-class StoryView extends StatelessWidget {
+class StoryView extends StatefulWidget {
   final List<Story> l;
   final String title;
-  const StoryView(this.l, this.title, {super.key});
+  final void Function(Story)? onSeen;
+  final bool Function(Story)? liked;
+  final void Function(Story)? onLike;
+  final String Function(Story)? stat;
+  const StoryView(this.l, this.title, {this.onSeen, this.liked, this.onLike, this.stat, super.key});
   @override
-  Widget build(BuildContext c) => Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: Text(title)),
-        body: PageView(children: [
-          for (final s in l)
-            GestureDetector(
-              onTap: () => Navigator.pop(c),
-              child: s.img != null
-                  ? Center(child: Image.file(File(s.img!)))
-                  : Container(
-                      color: s.color,
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.all(24),
-                      child: fw.Text(s.text!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                    ),
-            ),
-        ]),
+  State<StoryView> createState() => _StoryViewState();
+}
+
+class _StoryViewState extends State<StoryView> {
+  int i = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.l.isNotEmpty) widget.onSeen?.call(widget.l[0]);
+    });
+  }
+
+  @override
+  Widget build(BuildContext c) {
+    final s0 = widget.l[i];
+    Widget? bottom;
+    if (widget.stat != null && s0.sid != null) {
+      bottom = Text(widget.stat!(s0), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700));
+    } else if (widget.onLike != null && s0.sid != null) {
+      final liked = widget.liked?.call(s0) ?? false;
+      bottom = IconButton(
+        iconSize: 36,
+        icon: Icon(liked ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: liked ? Colors.red : Colors.white),
+        onPressed: () {
+          widget.onLike!(s0);
+          setState(() {});
+        },
       );
+    }
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: Text(widget.title)),
+      body: Stack(children: [
+        PageView(
+          onPageChanged: (k) {
+            setState(() => i = k);
+            widget.onSeen?.call(widget.l[k]);
+          },
+          children: [
+            for (final s in widget.l)
+              GestureDetector(
+                onTap: () => Navigator.pop(c),
+                child: s.img != null
+                    ? Center(child: Image.file(File(s.img!)))
+                    : Container(
+                        color: s.color,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.all(24),
+                        child: fw.Text(s.text!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+                      ),
+              ),
+          ],
+        ),
+        if (bottom != null)
+          Positioned(left: 0, right: 0, bottom: 28, child: Center(child: bottom)),
+      ]),
+    );
+  }
+}
+
+/// calls onSeen once when the child is first built (lazy lists build only what is near the screen)
+class ViewMark extends StatefulWidget {
+  final VoidCallback onSeen;
+  final Widget child;
+  const ViewMark({required this.onSeen, required this.child, super.key});
+  @override
+  State<ViewMark> createState() => _ViewMarkState();
+}
+
+class _ViewMarkState extends State<ViewMark> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onSeen();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class Home extends StatefulWidget {
@@ -915,6 +985,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         }
         chatNet = j['chatNet'] != false;
         blocked.addAll(List<String>.from((j['blocked'] as List?) ?? []));
+        myStoryLikes.addAll(List<String>.from((j['myStoryLikes'] as List?) ?? []));
+        viewed.addAll(List<String>.from((j['viewed'] as List?) ?? []));
         final cj = j['cloud'];
         if (cj is Map) {
           cloud.rt = cj['rt'] as String?;
@@ -952,6 +1024,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         'tmode': themeMode.value.index,
         'chatNet': chatNet,
         'blocked': blocked.toList(),
+        'myStoryLikes': myStoryLikes.toList(),
+        'viewed': viewed.toList(),
         'lang': langCode.value,
         'cloud': {'rt': cloud.rt, 'uid': cloud.uid, 'avSrc': cavSrc, 'av': cav, 'last': lastMsgId},
       }));
@@ -990,6 +1064,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final u = uCtl.text.trim().toLowerCase(), n = nCtl.text.trim();
     if (!RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(u) || n.isEmpty) {
       return snack('اكتب اسمك، واسم مستخدم 3 حروف أو أكتر (إنجليزي/أرقام)');
+    }
+    if (!editing && await nameTaken(u)) {
+      setState(() => nameState = 'taken');
+      return snack('الاسم ده محجوز لشخص تاني، اختار اسم مختلف');
     }
     var sd = me?.sd;
     final kin = kCtl.text.trim();
@@ -1199,8 +1277,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         TextField(
             controller: uCtl,
             readOnly: editing,
+            onChanged: editing ? null : onNameChanged,
             decoration: fld(context, label: 'اسم المستخدم', icon: Icons.alternate_email).copyWith(
-                helperText: editing ? null : T('حروف إنجليزية وأرقام و _ فقط، ومينفعش تتغيّر بعد كده'))),
+                helperText: editing
+                    ? null
+                    : (nameState == 'ok'
+                        ? T('الاسم متاح ✓')
+                        : (nameState == 'checking'
+                            ? T('بنتأكد من الاسم...')
+                            : T('حروف إنجليزية وأرقام و _ فقط، ومينفعش تتغيّر بعد كده'))),
+                errorText: nameState == 'taken' ? T('الاسم ده محجوز لشخص تاني، اختار اسم مختلف') : null,
+                suffixIcon: nameState == 'ok' ? const Icon(Icons.check_circle_rounded, color: Colors.green) : null)),
         const SizedBox(height: 12),
         TextField(
             controller: bCtl,
@@ -1743,7 +1830,18 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               e.key == me!.u ? 'قصتي' : prof(e.key).n,
               av(prof(e.key).a),
               () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => StoryView(e.value, prof(e.key).n))),
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => StoryView(
+                            e.value,
+                            prof(e.key).n,
+                            onSeen: (st) => markViewed('story', st.sid, e.key),
+                            liked: (st) => st.sid != null && myStoryLikes.contains(st.sid),
+                            onLike: e.key == me!.u ? null : (st) => toggleStoryLike(st),
+                            stat: e.key == me!.u
+                                ? (st) => '👁 ${sviews[st.sid] ?? 0}    ❤ ${slikes[st.sid] ?? 0}'
+                                : null,
+                          ))),
               true,
             ),
         ],
@@ -2609,7 +2707,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   // ---------- internet: public posts, reels, stories ----------
   final explore = <Post>[], reelsList = <Post>[];
   final userPosts = <String, List<Post>>{};
-  final blocked = <String>{};
+  final blocked = <String>{}, myStoryLikes = <String>{}, viewed = <String>{};
+  final vcount = <String, int>{}, sviews = <String, int>{}, slikes = <String, int>{};
+  final viewQueue = <Map>[];
+  Timer? viewTimer, nameTimer;
+  String nameState = '';
   final ccount = <String, int>{};
   bool certsPushed = false;
   bool chatNet = true, uploading = false, exploreTab = false, socialBusy = false;
@@ -2755,6 +2857,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       }
       final rc = await cloud.rest('GET', '/rest/v1/certs?select=*&order=t.desc&limit=500');
       if (rc.$1 == 200 && rc.$2 is List) await mergeCerts(rc.$2 as List);
+      await pullOwnerStats();
       if (mounted) setState(() {});
       save();
     } catch (_) {
@@ -2920,6 +3023,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               IconButton(icon: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 30), onPressed: () => delPost(p, false))
             else
               userMenu(p.from, postId: p.id, color: Colors.white),
+            if (p.from == me!.u) ...[
+              const SizedBox(height: 4),
+              const Icon(Icons.visibility_outlined, color: Colors.white, size: 24),
+              fw.Text('${vcount[p.id] ?? 0}', style: white),
+            ],
           ]),
         ),
       ]),
@@ -2935,6 +3043,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               label: const Text('ريل جديد')));
     }
     if (reelIdx >= reelsList.length) reelIdx = 0;
+    final cr = reelsList[reelIdx];
+    if (cr.srv) markViewed('post', cr.id, cr.from);
     return Stack(children: [
       PageView.builder(
         controller: reelCtl,
@@ -3181,6 +3291,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     nCtl.clear();
     bCtl.clear();
     kCtl.clear();
+    nameState = '';
+    viewed.clear();
+    myStoryLikes.clear();
     if (!mounted) return;
     setState(() {
       contacts.clear();
@@ -3305,6 +3418,126 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         },
       ),
     );
+  }
+
+  // ---------- views, story likes, username check ----------
+  void markViewed(String kind, String? id, String owner) {
+    if (id == null || me == null || owner == me!.u || !netReady) return;
+    final key = '$kind:$id';
+    if (viewed.contains(key)) return;
+    viewed.add(key);
+    if (viewed.length > 800) viewed.remove(viewed.first);
+    viewQueue.add({'kind': kind, 'item_id': id, 'viewer': me!.u});
+    viewTimer ??= Timer(const Duration(seconds: 2), flushViews);
+  }
+
+  Future<void> flushViews() async {
+    viewTimer = null;
+    if (viewQueue.isEmpty) return;
+    final batch = List<Map>.of(viewQueue);
+    viewQueue.clear();
+    void undo() {
+      for (final b in batch) {
+        viewed.remove('${b['kind']}:${b['item_id']}');
+      }
+    }
+
+    if (!await cloud.ensure()) return undo();
+    final r = await cloud.rest('POST', '/rest/v1/views',
+        headers: {'Prefer': 'return=minimal,resolution=ignore-duplicates'}, body: batch);
+    if (r.$1 < 200 || r.$1 >= 300) undo();
+    save();
+  }
+
+  Future<void> toggleStoryLike(Story s) async {
+    final id = s.sid;
+    if (id == null) return;
+    final v = !myStoryLikes.contains(id);
+    setState(() {
+      if (v) {
+        myStoryLikes.add(id);
+      } else {
+        myStoryLikes.remove(id);
+      }
+    });
+    save();
+    if (!await cloud.ensure()) return;
+    final r = v
+        ? await cloud.rest('POST', '/rest/v1/story_likes',
+            headers: {'Prefer': 'return=minimal,resolution=ignore-duplicates'},
+            body: {'story_id': id, 'u': me!.u})
+        : await cloud.rest('DELETE', '/rest/v1/story_likes?story_id=eq.${Uri.encodeComponent(id)}&u=eq.${me!.u}');
+    if (r.$1 < 200 || r.$1 >= 300) snack('تعذر تسجيل الإعجاب');
+  }
+
+  Future<void> pullOwnerStats() async {
+    final pids = <String>{
+      for (final p in posts)
+        if (p.srv && p.from == me!.u) p.id,
+      for (final p in reelsList)
+        if (p.from == me!.u) p.id,
+      for (final p in (userPosts[me!.u] ?? <Post>[])) p.id,
+    }.toList();
+    if (pids.isNotEmpty) {
+      final r = await cloud.rest('GET', '/rest/v1/views?kind=eq.post&item_id=in.(${pids.join(',')})&select=item_id&limit=10000');
+      if (r.$1 == 200 && r.$2 is List) {
+        vcount.clear();
+        for (final e in (r.$2 as List)) {
+          final k = e['item_id'] as String;
+          vcount[k] = (vcount[k] ?? 0) + 1;
+        }
+      }
+    }
+    final sids = [
+      for (final s in stories)
+        if (s.from == me!.u && s.sid != null && s.live) s.sid!,
+    ];
+    if (sids.isNotEmpty) {
+      final j = sids.join(',');
+      final r1 = await cloud.rest('GET', '/rest/v1/views?kind=eq.story&item_id=in.($j)&select=item_id&limit=10000');
+      if (r1.$1 == 200 && r1.$2 is List) {
+        sviews.clear();
+        for (final e in (r1.$2 as List)) {
+          final k = e['item_id'] as String;
+          sviews[k] = (sviews[k] ?? 0) + 1;
+        }
+      }
+      final r2 = await cloud.rest('GET', '/rest/v1/story_likes?story_id=in.($j)&select=story_id&limit=10000');
+      if (r2.$1 == 200 && r2.$2 is List) {
+        slikes.clear();
+        for (final e in (r2.$2 as List)) {
+          final k = e['story_id'] as String;
+          slikes[k] = (slikes[k] ?? 0) + 1;
+        }
+      }
+    }
+  }
+
+  Future<bool> nameTaken(String u) async {
+    try {
+      if (!await cloud.ensure()) return false;
+      final r = await cloud.rest('GET', '/rest/v1/profiles?u=eq.${Uri.encodeComponent(u)}&select=u,uid');
+      if (r.$1 == 200 && r.$2 is List && (r.$2 as List).isNotEmpty) {
+        final row = (r.$2 as List).first as Map;
+        return row['uid'] != cloud.uid;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  void onNameChanged(String v) {
+    nameTimer?.cancel();
+    final u = v.trim().toLowerCase();
+    if (!RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(u)) {
+      setState(() => nameState = '');
+      return;
+    }
+    setState(() => nameState = 'checking');
+    nameTimer = Timer(const Duration(milliseconds: 600), () async {
+      final t = await nameTaken(u);
+      if (!mounted || uCtl.text.trim().toLowerCase() != u) return;
+      setState(() => nameState = t ? 'taken' : 'ok');
+    });
   }
 
   // ---------- voice ----------
@@ -3942,6 +4175,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             Text('${ccount[p.id] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(width: 4),
             IconButton(icon: const Icon(Icons.share_rounded), onPressed: () => sharePost(p)),
+            if (p.from == me!.u) ...[
+              const SizedBox(width: 4),
+              const Icon(Icons.visibility_outlined, size: 20),
+              const SizedBox(width: 4),
+              Text('${vcount[p.id] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700)),
+            ],
           ]),
         ),
         if (p.im && cap.isNotEmpty)
@@ -4040,7 +4279,14 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                           icon: const Icon(Icons.add_photo_alternate_outlined),
                           label: const Text('منشور جديد'))),
             ),
-          for (final p in l) postCard(p),
+          for (final p in l)
+            ViewMark(
+              key: ValueKey('v${p.id}'),
+              onSeen: () {
+                if (p.srv) markViewed('post', p.id, p.from);
+              },
+              child: postCard(p),
+            ),
         ],
       ),
     );
