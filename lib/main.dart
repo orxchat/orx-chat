@@ -143,6 +143,14 @@ const _en = <String, String>{
   'أتابعهم': 'Following',
   'الأصدقاء': 'Friends',
   'بحث': 'Search',
+  'القائمة': 'Menu',
+  'المظهر والإعدادات': 'Appearance & settings',
+  'تقديم بلاغ': 'Report a problem',
+  'المساعدة والدعم': 'Help & support',
+  'لو شفت مستخدم أو منشور أو ريل مخالف: اضغط على ⋮ جنبه واختار "إبلاغ".': 'If you see a user, post or reel that breaks the rules: tap ⋮ next to it and choose "Report".',
+  'وللبلاغات التانية أو أي مشكلة، ابعت لنا على الإيميل:': 'For anything else, email us at:',
+  'لأي استفسار أو مشكلة، تواصل معانا على الإيميل:': 'For any question or problem, contact us at:',
+  'تم النسخ': 'Copied',
   'الرئيسية': 'Home',
   'اكتشف': 'Discover',
   'الإشعارات': 'Notifications',
@@ -515,12 +523,12 @@ class Splash extends StatefulWidget {
 
 class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
   late final AnimationController ac =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..forward();
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1700))..forward();
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1600), () {
+    Future.delayed(const Duration(milliseconds: 2300), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
@@ -536,40 +544,127 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  double _t(double a, double b, [Curve c = Curves.easeOutCubic]) =>
+      c.transform(((ac.value - a) / (b - a)).clamp(0.0, 1.0));
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final mid = Color.lerp(cs.primary, cs.tertiary, 0.6)!;
+    const letters = ['O', 'R', 'X'];
     return Scaffold(
-      body: Center(
-        child: FadeTransition(
-          opacity: ac,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.85, end: 1).animate(CurvedAnimation(parent: ac, curve: Curves.easeOutBack)),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: 92,
-                height: 92,
+      body: AnimatedBuilder(
+        animation: ac,
+        builder: (c, _) {
+          final glow = _t(0.0, 0.6);
+          final logoT = _t(0.05, 0.5, Curves.easeOutBack);
+          final ring = _t(0.25, 0.85);
+          final tag = _t(0.62, 0.9);
+          return Stack(children: [
+            Positioned.fill(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  gradient: LinearGradient(colors: [cs.primary, cs.tertiary]),
-                ),
-                child: Icon(Icons.chat_bubble_rounded, size: 46, color: cs.onPrimary),
-              ),
-              const SizedBox(height: 20),
-              ShaderMask(
-                blendMode: BlendMode.srcIn,
-                shaderCallback: (r) => LinearGradient(colors: [cs.primary, cs.tertiary]).createShader(r),
-                child: const Padding(
-                  padding: EdgeInsetsDirectional.only(start: 12),
-                  child: Text('ORX',
-                      style: TextStyle(fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: 12, color: Colors.white)),
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -0.1),
+                    radius: 0.85,
+                    colors: [cs.primary.withOpacity(0.22 * glow), Colors.transparent],
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text('دردشة بدون إنترنت', style: TextStyle(color: cs.onSurfaceVariant)),
-            ]),
-          ),
-        ),
+            ),
+            Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                SizedBox(
+                  width: 220,
+                  height: 220,
+                  child: Stack(alignment: Alignment.center, children: [
+                    Opacity(
+                      opacity: ((1 - ring) * 0.55).clamp(0.0, 1.0),
+                      child: Container(
+                        width: 96 + 120 * ring,
+                        height: 96 + 120 * ring,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30 + 60 * ring),
+                          border: Border.all(color: cs.primary, width: 2),
+                        ),
+                      ),
+                    ),
+                    Transform.scale(
+                      scale: 0.6 + 0.4 * logoT,
+                      child: Opacity(
+                        opacity: logoT.clamp(0.0, 1.0),
+                        child: Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            gradient: LinearGradient(
+                                begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [cs.primary, mid]),
+                            boxShadow: [BoxShadow(color: cs.primary.withOpacity(0.55), blurRadius: 36, spreadRadius: 2)],
+                          ),
+                          child: Icon(Icons.chat_bubble_rounded, size: 48, color: cs.onPrimary),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+                Row(mainAxisSize: MainAxisSize.min, textDirection: TextDirection.ltr, children: [
+                  for (var i = 0; i < 3; i++)
+                    Builder(builder: (_) {
+                      final lt = _t(0.4 + i * 0.1, 0.65 + i * 0.1);
+                      return Opacity(
+                        opacity: lt,
+                        child: Transform.translate(
+                          offset: Offset(0, 16 * (1 - lt)),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: ShaderMask(
+                              blendMode: BlendMode.srcIn,
+                              shaderCallback: (r) => LinearGradient(colors: [cs.primary, mid]).createShader(r),
+                              child: fw.Text(letters[i],
+                                  style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w900, color: Colors.white)),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                ]),
+                const SizedBox(height: 10),
+                Opacity(
+                  opacity: tag,
+                  child: Transform.translate(
+                    offset: Offset(0, 8 * (1 - tag)),
+                    child: Text('دردشة بدون إنترنت',
+                        style: TextStyle(color: cs.onSurfaceVariant, letterSpacing: 0.5)),
+                  ),
+                ),
+              ]),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 72,
+              child: Center(
+                child: Container(
+                  width: 110,
+                  height: 3,
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                      color: cs.onSurface.withOpacity(0.08), borderRadius: BorderRadius.circular(2)),
+                  child: Container(
+                    width: 110 * ac.value,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(2),
+                      gradient: LinearGradient(colors: [cs.primary, mid]),
+                      boxShadow: [BoxShadow(color: cs.primary.withOpacity(0.7), blurRadius: 8)],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ]);
+        },
       ),
     );
   }
@@ -2040,13 +2135,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             onTap: () => go(i),
             child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
               Icon(active ? sic : ic,
-                  size: 27,
+                  size: 23,
                   color: col,
                   shadows: active ? [Shadow(color: cs.primary.withOpacity(0.8), blurRadius: 12)] : null),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(label,
                   style: TextStyle(
-                      fontSize: 11.5,
+                      fontSize: 10.5,
                       fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                       color: col,
                       shadows: active ? [Shadow(color: cs.primary.withOpacity(0.6), blurRadius: 8)] : null)),
@@ -2061,8 +2156,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             child: GestureDetector(
               onTap: createMenu,
               child: Container(
-                width: 58,
-                height: 58,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -2071,7 +2166,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                       colors: [cs.primary, Color.lerp(cs.primary, cs.tertiary, 0.6)!]),
                   boxShadow: [BoxShadow(color: cs.primary.withOpacity(0.6), blurRadius: 20, spreadRadius: 1)],
                 ),
-                child: Icon(Icons.add_rounded, color: Color.lerp(cs.onPrimary, Colors.black, 0.4), size: 34),
+                child: Icon(Icons.add_rounded, color: Color.lerp(cs.onPrimary, Colors.black, 0.4), size: 28),
               ),
             ),
           ),
@@ -2080,14 +2175,14 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainer,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
         border: Border.all(color: cs.primary.withOpacity(0.35)),
         boxShadow: [BoxShadow(color: cs.primary.withOpacity(0.18), blurRadius: 16, offset: const Offset(0, -2))],
       ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 76,
+          height: 58,
           child: Row(children: [item(0), item(1), plus(), item(2), item(3)]),
         ),
       ),
@@ -2150,6 +2245,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         if (!d) goBack();
       },
       child: Scaffold(
+        key: scKey,
+        drawer: (inChat || otherProf) ? null : sideMenu(),
         appBar: AppBar(
           centerTitle: true,
           backgroundColor: cs.surface,
@@ -2160,7 +2257,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               : (otherProf
                   ? IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: goBack)
                   : IconButton(
-                      tooltip: T('المظهر'), icon: const Icon(Icons.palette_rounded), onPressed: appearance)),
+                      tooltip: T('القائمة'),
+                      icon: const Icon(Icons.menu_rounded),
+                      onPressed: () => scKey.currentState?.openDrawer())),
           title: inChat
               ? chatHead()
               : (otherProf
@@ -2827,6 +2926,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   // ---------- internet: public posts, reels, stories ----------
   final explore = <Post>[], reelsList = <Post>[];
   final userPosts = <String, List<Post>>{};
+  final scKey = GlobalKey<ScaffoldState>();
   final blocked = <String>{}, myStoryLikes = <String>{}, viewed = <String>{};
   final vcount = <String, int>{}, sviews = <String, int>{}, slikes = <String, int>{};
   final viewQueue = <Map>[];
@@ -4110,6 +4210,93 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ),
         ),
       );
+
+  Widget sideMenu() {
+    final cs = Theme.of(context).colorScheme;
+    Widget it(IconData i, String t, VoidCallback f, {Color? col}) => ListTile(
+          leading: Icon(i, color: col),
+          title: Text(t, style: TextStyle(color: col, fontWeight: FontWeight.w600)),
+          onTap: () {
+            Navigator.pop(context);
+            f();
+          },
+        );
+    return Drawer(
+      backgroundColor: cs.surface,
+      child: SafeArea(
+        child: ListView(padding: EdgeInsets.zero, children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [cs.primary.withOpacity(0.18), Colors.transparent]),
+            ),
+            child: Row(children: [
+              av(me!.a, r: 28),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  fw.Text(me!.n,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                  fw.Text('\u200e@${me!.u}', style: TextStyle(color: cs.onSurfaceVariant)),
+                ]),
+              ),
+            ]),
+          ),
+          it(Icons.palette_outlined, 'المظهر والإعدادات', appearance),
+          it(Icons.block_rounded, 'الحسابات المحظورة', showBlocked),
+          it(Icons.flag_outlined, 'تقديم بلاغ', () => supportSheet(report: true)),
+          it(Icons.help_outline_rounded, 'المساعدة والدعم', () => supportSheet()),
+          it(Icons.privacy_tip_outlined, 'سياسة الخصوصية', openPolicy),
+        ]),
+      ),
+    );
+  }
+
+  void supportSheet({bool report = false}) {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(report ? 'تقديم بلاغ' : 'المساعدة والدعم',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            if (report) ...[
+              Text('لو شفت مستخدم أو منشور أو ريل مخالف: اضغط على ⋮ جنبه واختار "إبلاغ".'),
+              const SizedBox(height: 8),
+              Text('وللبلاغات التانية أو أي مشكلة، ابعت لنا على الإيميل:'),
+            ] else
+              Text('لأي استفسار أو مشكلة، تواصل معانا على الإيميل:'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(16)),
+              child: Row(children: [
+                Expanded(child: fw.Text(kContactEmail, style: TextStyle(color: cs.primary, fontWeight: FontWeight.w700))),
+                IconButton(
+                  tooltip: T('نسخ'),
+                  icon: const Icon(Icons.copy_rounded),
+                  onPressed: () {
+                    Clipboard.setData(const ClipboardData(text: kContactEmail));
+                    Navigator.pop(c);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم النسخ')));
+                  },
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 
   void appearance() => showModalBottomSheet(
         context: context,
