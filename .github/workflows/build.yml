@@ -20,6 +20,18 @@ jobs:
       - run: sed -i 's/android:label="[^"]*"/android:label="orx chat"/' android/app/src/main/AndroidManifest.xml
       - run: sed -i -E 's/minSdk(Version)?[ =]+flutter\.minSdkVersion/minSdk = 26/' android/app/build.gradle*
       - run: python3 patch_gradle.py
+      - name: Firebase config
+        env:
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GSJ" ]; then echo "::error::Secret GOOGLE_SERVICES_JSON is missing"; exit 1; fi
+          if printf '%s' "$GSJ" | head -c1 | grep -q '{'; then
+            printf '%s' "$GSJ" > android/app/google-services.json
+          else
+            printf '%s' "$GSJ" | base64 -d > android/app/google-services.json
+          fi
+          python3 -c "import json;d=json.load(open('android/app/google-services.json'));print('Firebase package:',d['client'][0]['client_info']['android_client_info']['package_name'])"
+          python3 patch_firebase.py
       - run: |
           R=android/app/src/main/res
           cp ic48.png $R/mipmap-mdpi/ic_launcher.png
