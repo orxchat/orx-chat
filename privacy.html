@@ -16,7 +16,7 @@ button.on{background:#0e7c66;color:#fff} .lang{display:none} .lang.show{display:
 <div class="btns"><button id="be" class="on" onclick="sw('en')">English</button><button id="ba" onclick="sw('ar')">العربية</button></div>
 <div id="en" class="lang show" dir="ltr">
 <p>ORX Privacy Policy</p>
-<p>Last updated: October 13, 2026</p>
+<p>Last updated: October 16, 2026</p>
 <h2>1) Who we are</h2>
 <p>ORX is a chat app that works over Bluetooth / nearby connections and over the internet. This policy explains what information the app handles. Contact: orxchat.support@gmail.com</p>
 <h2>2) Information you provide</h2>
@@ -24,15 +24,18 @@ button.on{background:#0e7c66;color:#fff} .lang{display:none} .lang.show{display:
 <li>Your username, display name, profile photo and short bio.</li>
 <li>Messages, photos, voice messages, posts, reels (short videos), stories and comments you send.</li>
 <li>Cryptographic keys generated on your device to prove your identity and encrypt your messages.</li>
+<li>Password: handled by Supabase authentication and never visible to us. A copy of your private key is stored on the server encrypted with your password, so we cannot read it. If you forget your password the account cannot be recovered.</li>
+<li>Your follow relationships and follow requests, and whether your account is public or private.</li>
+<li>Reactions (⚡) you give to posts, stories and comments.</li>
 </ul>
 <h2>3) How messages travel</h2>
 <ul>
 <li>Nearby mode: messages go directly between the two devices over Bluetooth or Wi-Fi Direct (Google Nearby Connections). They do not pass through our servers.</li>
-<li>Internet mode: messages are encrypted on your device before they are uploaded. Our server (hosted by Supabase) stores the encrypted message addressed to the recipient&#x27;s anonymous ID until their device collects it. Photos, voice messages and files sent in chats are encrypted before upload. We cannot read the content of your messages.</li>
-<li>What the server can see: the anonymous account ID, the sender&#x27;s username, the recipient&#x27;s ID, and the time and size of messages.</li>
+<li>Internet mode: messages are encrypted on your device before they are uploaded. Our server (hosted by Supabase) stores the encrypted message addressed to the recipient&#x27;s account ID until their device collects it. Photos, voice messages and files sent in chats are encrypted before upload. We cannot read the content of your messages.</li>
+<li>What the server can see: the account ID, the sender&#x27;s username, the recipient&#x27;s ID, and the time and size of messages.</li>
 </ul>
 <h2>4) Public profile and public content</h2>
-<p>When you use internet features, your profile data (username, display name, bio, photo, public keys) is stored on the server and can be found by anyone who searches for your username. Do not put sensitive information in your profile. Posts, reels, stories, comments, their photos and videos, and likes are public content: they are stored on the server without end-to-end encryption and can be seen by other users of the app. Do not publish anything you want to keep private. You can report any user or content and block any user from inside the app. We may review reports and remove violating content or suspend abusive accounts.</p>
+<p>When you use internet features, your profile data (username, display name, bio, photo, public keys) is stored on the server and can be found by anyone who searches for your username. Do not put sensitive information in your profile. Posts, reels, stories, comments, their photos and videos, and likes are public content: they are stored on the server without end-to-end encryption and can be seen by other users of the app. Do not publish anything you want to keep private. You can report any user or content and block any user from inside the app. We may review reports and remove violating content or suspend abusive accounts. We also record which posts and stories you view and your likes on stories, so that the content owner can see counts only. Your online status and last-seen time are visible to other users unless you turn off &quot;Show online status&quot; in the app (if you turn it off you also do not see others&#x27; status). If you set your account to private, your posts and stories are visible only to followers you approve (enforced on the server), while your username, name, bio and photo can still be found by search.</p>
 <h2>5) Information stored on your device</h2>
 <p>Chats, contacts, posts, stories, settings and your private keys are kept in the app&#x27;s private storage on your phone. If you uninstall the app or clear its data they are deleted from your device, and we cannot restore them.</p>
 <h2>6) Permissions</h2>
@@ -45,9 +48,9 @@ button.on{background:#0e7c66;color:#fff} .lang{display:none} .lang.show{display:
 <h2>7) What we do not do</h2>
 <p>No ads, no analytics or tracking tools, and we do not sell or share your data with advertisers.</p>
 <h2>8) Service providers</h2>
-<p>Supabase hosts the database, anonymous authentication and file storage. Its own privacy policy applies to its processing.</p>
+<p>Supabase hosts the database, authentication (username and password) and file storage. Its own privacy policy applies to its processing.</p>
 <h2>9) Retention and deletion</h2>
-<p>Encrypted messages and files may stay on the server until they are deleted, and we may delete old ones periodically. You can delete your account and all your server-side data (public profile, posts, reels, stories, comments, messages and files) at any time from inside the app: the appearance button, then Delete account. You can also email us at the address above with your username.</p>
+<p>Encrypted messages and files may stay on the server until they are deleted, and we may delete old ones periodically. You can delete your account and all your server-side data (public profile, posts, reels, stories, comments, messages and files) at any time from inside the app: side menu, then Account management, then Delete account. You can also email us at the address above with your username.</p>
 <h2>10) Security</h2>
 <p>We use end-to-end encryption for internet messages. No system is perfectly secure, so keep your phone protected.</p>
 <h2>11) Children</h2>
@@ -59,7 +62,7 @@ button.on{background:#0e7c66;color:#fff} .lang{display:none} .lang.show{display:
 </div>
 <div id="ar" class="lang" dir="rtl">
 <p>سياسة الخصوصية لتطبيق ORX</p>
-<p>آخر تحديث: 13 أكتوبر 2026</p>
+<p>آخر تحديث: 16 أكتوبر 2026</p>
 <h2>1) من نحن</h2>
 <p>ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال القريب، وعبر الإنترنت. توضح هذه السياسة المعلومات التي يتعامل معها التطبيق. للتواصل: orxchat.support@gmail.com</p>
 <h2>2) المعلومات التي تقدمها</h2>
@@ -67,15 +70,18 @@ button.on{background:#0e7c66;color:#fff} .lang{display:none} .lang.show{display:
 <li>اسم المستخدم والاسم وصورة الملف ونبذة قصيرة.</li>
 <li>الرسائل والصور والتسجيلات الصوتية والمنشورات والريلز (مقاطع الفيديو القصيرة) والقصص والتعليقات التي ترسلها.</li>
 <li>مفاتيح تشفير تُنشأ على جهازك لإثبات هويتك وتشفير رسائلك.</li>
+<li>كلمة السر: تُعالج عبر مصادقة Supabase ولا نراها نحن. وتُحفظ على الخادم نسخة من مفتاحك الخاص مشفّرة بكلمة سرك، فلا يمكننا قراءتها. إذا نسيت كلمة السر فلا يمكن استرجاع الحساب.</li>
+<li>علاقات المتابعة وطلبات المتابعة، وكون حسابك عاما أو خاصا.</li>
+<li>التفاعلات (⚡) التي تضعها على المنشورات والقصص والتعليقات.</li>
 </ul>
 <h2>3) كيف تنتقل الرسائل</h2>
 <ul>
 <li>الوضع القريب: تنتقل الرسائل مباشرة بين الجهازين عبر البلوتوث أو الواي فاي المباشر (Google Nearby Connections) ولا تمر عبر خوادمنا.</li>
-<li>وضع الإنترنت: تُشفَّر الرسائل على جهازك قبل رفعها. يخزن الخادم (المستضاف لدى Supabase) الرسالة المشفرة موجهة إلى المعرّف المجهول للمستلم إلى أن يستلمها جهازه. وتُشفَّر الصور والتسجيلات والملفات المرسلة في المحادثات قبل الرفع. لا نستطيع قراءة محتوى رسائلك.</li>
-<li>ما يمكن للخادم رؤيته: المعرّف المجهول للحساب، واسم المرسل، ومعرّف المستلم، ووقت وحجم الرسائل.</li>
+<li>وضع الإنترنت: تُشفَّر الرسائل على جهازك قبل رفعها. يخزن الخادم (المستضاف لدى Supabase) الرسالة المشفرة موجهة إلى معرّف حساب المستلم إلى أن يستلمها جهازه. وتُشفَّر الصور والتسجيلات والملفات المرسلة في المحادثات قبل الرفع. لا نستطيع قراءة محتوى رسائلك.</li>
+<li>ما يمكن للخادم رؤيته: معرّف الحساب، واسم المرسل، ومعرّف المستلم، ووقت وحجم الرسائل.</li>
 </ul>
 <h2>4) الملف العام والمحتوى العام</h2>
-<p>عند استخدام ميزات الإنترنت، تُخزَّن بيانات ملفك (اسم المستخدم، الاسم، النبذة، الصورة، المفاتيح العامة) على الخادم ويمكن لأي شخص العثور عليها بالبحث عن اسم المستخدم. لا تضع معلومات حساسة في ملفك. المنشورات والريلز والقصص والتعليقات وصورها وفيديوهاتها والإعجابات محتوى عام: تُخزَّن على الخادم دون تشفير من طرف إلى طرف ويمكن لمستخدمي التطبيق الآخرين رؤيتها. لا تنشر ما تريد إبقاءه خاصا. يمكنك الإبلاغ عن أي مستخدم أو محتوى وحظر أي مستخدم من داخل التطبيق، وقد نراجع البلاغات ونحذف المحتوى المخالف أو نوقف الحسابات المسيئة.</p>
+<p>عند استخدام ميزات الإنترنت، تُخزَّن بيانات ملفك (اسم المستخدم، الاسم، النبذة، الصورة، المفاتيح العامة) على الخادم ويمكن لأي شخص العثور عليها بالبحث عن اسم المستخدم. لا تضع معلومات حساسة في ملفك. المنشورات والريلز والقصص والتعليقات وصورها وفيديوهاتها والإعجابات محتوى عام: تُخزَّن على الخادم دون تشفير من طرف إلى طرف ويمكن لمستخدمي التطبيق الآخرين رؤيتها. لا تنشر ما تريد إبقاءه خاصا. يمكنك الإبلاغ عن أي مستخدم أو محتوى وحظر أي مستخدم من داخل التطبيق، وقد نراجع البلاغات ونحذف المحتوى المخالف أو نوقف الحسابات المسيئة. كما نسجّل مشاهداتك للمنشورات والقصص وإعجاباتك على القصص ليرى صاحب المحتوى الأعداد فقط. وحالة اتصالك وآخر ظهور لك تظهر للمستخدمين الآخرين ما لم تُوقف خيار «إظهار حالة الاتصال» في التطبيق (وعند إيقافه لا ترى حالة الآخرين أيضا). وإذا جعلت حسابك خاصا فلا تظهر منشوراتك وقصصك إلا للمتابعين الذين توافق عليهم (يُطبَّق ذلك على الخادم)، بينما يمكن العثور على اسم المستخدم والاسم والنبذة والصورة بالبحث.</p>
 <h2>5) المعلومات المخزنة على جهازك</h2>
 <p>تُخزَّن المحادثات وجهات الاتصال والمنشورات والقصص والإعدادات ومفاتيحك الخاصة في مساحة التطبيق الخاصة على هاتفك. عند حذف التطبيق أو مسح بياناته تُحذف من جهازك ولا نستطيع استرجاعها.</p>
 <h2>6) الأذونات</h2>
@@ -88,9 +94,9 @@ button.on{background:#0e7c66;color:#fff} .lang{display:none} .lang.show{display:
 <h2>7) ما لا نفعله</h2>
 <p>لا توجد إعلانات، ولا أدوات تحليل أو تتبع، ولا نبيع بياناتك ولا نشاركها مع المعلنين.</p>
 <h2>8) مزودو الخدمة</h2>
-<p>تستضيف Supabase قاعدة البيانات والمصادقة المجهولة وتخزين الملفات، وتنطبق سياسة الخصوصية الخاصة بها على معالجتها.</p>
+<p>تستضيف Supabase قاعدة البيانات والمصادقة (اسم المستخدم وكلمة السر) وتخزين الملفات، وتنطبق سياسة الخصوصية الخاصة بها على معالجتها.</p>
 <h2>9) الاحتفاظ والحذف</h2>
-<p>قد تبقى الرسائل والملفات المشفرة على الخادم إلى أن تُحذف، وقد نحذف القديم منها دوريا. يمكنك حذف حسابك وكل بياناتك المخزنة على الخادم (الملف العام والمنشورات والريلز والقصص والتعليقات والرسائل والملفات) في أي وقت من داخل التطبيق: زر المظهر ثم حذف الحساب. ويمكنك أيضا مراسلتنا على البريد أعلاه مع اسم المستخدم.</p>
+<p>قد تبقى الرسائل والملفات المشفرة على الخادم إلى أن تُحذف، وقد نحذف القديم منها دوريا. يمكنك حذف حسابك وكل بياناتك المخزنة على الخادم (الملف العام والمنشورات والريلز والقصص والتعليقات والرسائل والملفات) في أي وقت من داخل التطبيق: القائمة الجانبية ثم إدارة الحساب ثم حذف الحساب. ويمكنك أيضا مراسلتنا على البريد أعلاه مع اسم المستخدم.</p>
 <h2>10) الأمان</h2>
 <p>نستخدم تشفيرا من طرف إلى طرف لرسائل الإنترنت. لا يوجد نظام آمن بالكامل، فحافظ على حماية هاتفك.</p>
 <h2>11) الأطفال</h2>
