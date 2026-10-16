@@ -15,7 +15,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart' show AudioEncoder, AudioRecorder, RecordConfig;
 import 'package:video_player/video_player.dart';
 import 'package:cryptography/cryptography.dart'
-    show AesGcm, Ed25519, Hkdf, Hmac, KeyPairType, SecretBox, SecretKey, Sha256, Signature, SimpleKeyPair, SimplePublicKey, X25519;
+    show AesGcm, Ed25519, Hkdf, Hmac, KeyPairType, Pbkdf2, SecretBox, SecretKey, Sha256, Signature, SimpleKeyPair, SimplePublicKey, X25519;
 
 const svc = 'com.btchat.app';
 const strat = Strategy.P2P_CLUSTER;
@@ -143,6 +143,17 @@ const _en = <String, String>{
   'أتابعهم': 'Following',
   'الأصدقاء': 'Friends',
   'بحث': 'Search',
+  'حساب جديد': 'New account',
+  'تسجيل الدخول': 'Log in',
+  'دخول': 'Log in',
+  'إنشاء حساب': 'Create account',
+  'كلمة السر': 'Password',
+  'تأكيد كلمة السر': 'Confirm password',
+  'لو نسيت كلمة السر مفيش استرجاع للحساب، فاحفظها كويس': 'If you forget your password the account cannot be recovered, so keep it safe',
+  'تسجيل الخروج': 'Log out',
+  'خروج': 'Log out',
+  'تأكيد': 'Confirm',
+  'هتتمسح المحادثات والبيانات اللي على الجهاز ده. لما تدخل تاني بحسابك هترجع منشوراتك وبياناتك من السيرفر، لكن مش المحادثات القديمة.': 'Chats and data on this device will be erased. When you log in again your posts and data come back from the server, but not old chats.',
   'القائمة': 'Menu',
   'المظهر والإعدادات': 'Appearance & settings',
   'تقديم بلاغ': 'Report a problem',
@@ -296,7 +307,7 @@ class Text extends StatelessWidget {
 }
 
 const _policyAr = """سياسة الخصوصية لتطبيق ORX
-آخر تحديث: 13 أكتوبر 2026
+آخر تحديث: 16 أكتوبر 2026
 
 1) من نحن
 ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال القريب، وعبر الإنترنت. توضح هذه السياسة المعلومات التي يتعامل معها التطبيق. للتواصل: $kContactEmail
@@ -305,6 +316,7 @@ ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال ال
 • اسم المستخدم والاسم وصورة الملف ونبذة قصيرة.
 • الرسائل والصور والتسجيلات الصوتية والمنشورات والريلز (مقاطع الفيديو القصيرة) والقصص والتعليقات التي ترسلها.
 • مفاتيح تشفير تُنشأ على جهازك لإثبات هويتك وتشفير رسائلك.
+• كلمة السر: تُعالج عبر مصادقة Supabase ولا نراها نحن. وتُحفظ على الخادم نسخة من مفتاحك الخاص مشفّرة بكلمة سرك، فلا يمكننا قراءتها. إذا نسيت كلمة السر فلا يمكن استرجاع الحساب.
 
 3) كيف تنتقل الرسائل
 • الوضع القريب: تنتقل الرسائل مباشرة بين الجهازين عبر البلوتوث أو الواي فاي المباشر (Google Nearby Connections) ولا تمر عبر خوادمنا.
@@ -327,7 +339,7 @@ ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال ال
 لا توجد إعلانات، ولا أدوات تحليل أو تتبع، ولا نبيع بياناتك ولا نشاركها مع المعلنين.
 
 8) مزودو الخدمة
-تستضيف Supabase قاعدة البيانات والمصادقة المجهولة وتخزين الملفات، وتنطبق سياسة الخصوصية الخاصة بها على معالجتها.
+تستضيف Supabase قاعدة البيانات والمصادقة (اسم المستخدم وكلمة السر) وتخزين الملفات، وتنطبق سياسة الخصوصية الخاصة بها على معالجتها.
 
 9) الاحتفاظ والحذف
 قد تبقى الرسائل والملفات المشفرة على الخادم إلى أن تُحذف، وقد نحذف القديم منها دوريا. يمكنك حذف حسابك وكل بياناتك المخزنة على الخادم (الملف العام والمنشورات والريلز والقصص والتعليقات والرسائل والملفات) في أي وقت من داخل التطبيق: زر المظهر ثم حذف الحساب. ويمكنك أيضا مراسلتنا على البريد أعلاه مع اسم المستخدم.
@@ -345,7 +357,7 @@ ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال ال
 $kContactEmail""";
 
 const _policyEn = """ORX Privacy Policy
-Last updated: October 13, 2026
+Last updated: October 16, 2026
 
 1) Who we are
 ORX is a chat app that works over Bluetooth / nearby connections and over the internet. This policy explains what information the app handles. Contact: $kContactEmail
@@ -354,6 +366,7 @@ ORX is a chat app that works over Bluetooth / nearby connections and over the in
 • Your username, display name, profile photo and short bio.
 • Messages, photos, voice messages, posts, reels (short videos), stories and comments you send.
 • Cryptographic keys generated on your device to prove your identity and encrypt your messages.
+• Password: handled by Supabase authentication and never visible to us. A copy of your private key is stored on the server encrypted with your password, so we cannot read it. If you forget your password the account cannot be recovered.
 
 3) How messages travel
 • Nearby mode: messages go directly between the two devices over Bluetooth or Wi-Fi Direct (Google Nearby Connections). They do not pass through our servers.
@@ -376,7 +389,7 @@ Chats, contacts, posts, stories, settings and your private keys are kept in the 
 No ads, no analytics or tracking tools, and we do not sell or share your data with advertisers.
 
 8) Service providers
-Supabase hosts the database, anonymous authentication and file storage. Its own privacy policy applies to its processing.
+Supabase hosts the database, authentication (username and password) and file storage. Its own privacy policy applies to its processing.
 
 9) Retention and deletion
 Encrypted messages and files may stay on the server until they are deleted, and we may delete old ones periodically. You can delete your account and all your server-side data (public profile, posts, reels, stories, comments, messages and files) at any time from inside the app: the appearance button, then Delete account. You can also email us at the address above with your username.
@@ -682,6 +695,7 @@ class Cloud {
   String get noNet =>
       'مفيش اتصال بالإنترنت (${lastEx.length > 90 ? lastEx.substring(0, 90) : lastEx})';
   void Function()? onSession;
+  bool dead = false;
 
   Future<(int, dynamic)> rest(String method, String path,
       {Object? body, Map<String, String>? headers, bool auth = true}) async {
@@ -793,21 +807,41 @@ class Cloud {
       rt = null;
       uid = null;
     }
-    if (uid == null) {
-      final r = await rest('POST', '/auth/v1/signup', body: {'data': {}}, auth: false);
-      if (r.$1 == 200 && r.$2 is Map) {
-        _ses(r.$2 as Map);
-        return true;
-      }
-      err = r.$1 == -1
-          ? noNet
-          : (_msg(r.$2).toLowerCase().contains('anonymous')
-              ? 'فعّل Anonymous sign-ins من إعدادات Supabase'
-              : 'تعذر تسجيل الدخول للسيرفر (${r.$1})');
-      return false;
-    }
-    err = 'انتهت جلسة الإنترنت';
+    dead = true;
+    err = 'الجلسة انتهت أو الحساب مش موجود على السيرفر. اعمل تسجيل خروج من القايمة وادخل من جديد';
     return false;
+  }
+
+  /// null = نجح، غير كده كود الخطأ
+  Future<String?> signUp(String email, String pw) async {
+    final r = await rest('POST', '/auth/v1/signup', body: {'email': email, 'password': pw}, auth: false);
+    if (r.$1 == -1) return 'net';
+    if (r.$1 == 200 && r.$2 is Map && (r.$2 as Map)['access_token'] != null) {
+      dead = false;
+      _ses(r.$2 as Map);
+      return null;
+    }
+    final m = _msg(r.$2).toLowerCase();
+    if (m.contains('already') || m.contains('registered')) return 'taken';
+    if (r.$1 == 200) return 'confirm';
+    if (m.contains('password')) return 'weak';
+    if (m.contains('not allowed') || m.contains('disabled')) return 'disabled';
+    return 'err:${r.$1}';
+  }
+
+  Future<String?> signIn(String email, String pw) async {
+    final r = await rest('POST', '/auth/v1/token?grant_type=password',
+        body: {'email': email, 'password': pw}, auth: false);
+    if (r.$1 == -1) return 'net';
+    if (r.$1 == 200 && r.$2 is Map && (r.$2 as Map)['access_token'] != null) {
+      dead = false;
+      _ses(r.$2 as Map);
+      return null;
+    }
+    final m = _msg(r.$2).toLowerCase();
+    if (m.contains('confirm')) return 'confirm';
+    if (r.$1 == 400 || r.$1 == 401 || r.$1 == 422) return 'bad';
+    return 'err:${r.$1}';
   }
 }
 
@@ -1066,6 +1100,9 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with WidgetsBindingObserver {
+  String authMode = 'signup';
+  bool authBusy = false, showPw = false;
+  final pCtl = TextEditingController(), p2Ctl = TextEditingController();
   final uCtl = TextEditingController(), nCtl = TextEditingController(), input = TextEditingController(), kCtl = TextEditingController();
   Prof? me;
   String? tmpAv, cur;
@@ -1202,10 +1239,122 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     setState(() => tmpAv = k);
   }
 
+  // ---------- حساب بكلمة سر + نسخة مفتاح مشفّرة ----------
+  String authErr(String e) {
+    switch (e) {
+      case 'net':
+        return cloud.noNet;
+      case 'taken':
+        return 'الاسم ده محجوز لشخص تاني، اختار اسم مختلف';
+      case 'weak':
+        return 'كلمة السر ضعيفة، اكتب 6 حروف أو أكتر';
+      case 'bad':
+        return 'اسم المستخدم أو كلمة السر غلط';
+      case 'confirm':
+        return 'السيرفر لسه بيطلب تأكيد الإيميل. اقفل Confirm email من إعدادات Supabase';
+      case 'disabled':
+        return 'التسجيل بالإيميل متوقف. فعّل Email provider من إعدادات Supabase';
+      default:
+        return 'حصلت مشكلة ($e)، جرّب تاني';
+    }
+  }
+
+  Future<SecretKey> pwKey(String pw, List<int> salt) =>
+      Pbkdf2(macAlgorithm: Hmac.sha256(), iterations: 100000, bits: 256)
+          .deriveKeyFromPassword(password: pw, nonce: salt);
+
+  Future<String> backupSeed(String sd, String pw) async {
+    final salt = List<int>.generate(16, (_) => Random.secure().nextInt(256));
+    final box = await aes.encrypt(utf8.encode(sd), secretKey: await pwKey(pw, salt));
+    return base64Encode([...salt, ...box.concatenation()]);
+  }
+
+  Future<String?> restoreSeed(String blob, String pw) async {
+    try {
+      final b = base64Decode(blob);
+      final box = SecretBox.fromConcatenation(b.sublist(16), nonceLength: 12, macLength: 16);
+      return utf8.decode(await aes.decrypt(box, secretKey: await pwKey(pw, b.sublist(0, 16))));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> uploadBackup(String sd, String pw) async {
+    final blob = await backupSeed(sd, pw);
+    final r = await cloud.rest('POST', '/rest/v1/key_backups?on_conflict=uid',
+        headers: {'Prefer': 'resolution=merge-duplicates,return=minimal'}, body: {'uid': cloud.uid, 'blob': blob});
+    return r.$1 >= 200 && r.$1 < 300;
+  }
+
+  Future<String?> askPassword(String title) async {
+    final c = TextEditingController();
+    final r = await showDialog<String>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text(title),
+        content: TextField(controller: c, obscureText: true, decoration: fld(d, label: 'كلمة السر')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.pop(d, c.text), child: const Text('تأكيد')),
+        ],
+      ),
+    );
+    return (r == null || r.isEmpty) ? null : r;
+  }
+
+  Future<void> doLogin() async {
+    final u = uCtl.text.trim().toLowerCase(), pw = pCtl.text;
+    if (!RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(u) || pw.isEmpty) return snack('اكتب اسم المستخدم وكلمة السر');
+    setState(() => authBusy = true);
+    try {
+      final e = await cloud.signIn('$u@orx.app', pw);
+      if (e != null) return snack(authErr(e));
+      final rb = await cloud.rest('GET', '/rest/v1/key_backups?select=blob');
+      String? sd;
+      if (rb.$1 == 200 && rb.$2 is List && (rb.$2 as List).isNotEmpty) {
+        sd = await restoreSeed(((rb.$2 as List).first as Map)['blob'] as String, pw);
+      }
+      if (sd == null) {
+        cloud.at = null;
+        cloud.rt = null;
+        cloud.uid = null;
+        return snack('مفيش نسخة مفتاح محفوظة للحساب ده، مينفعش يتفتح على الجهاز ده');
+      }
+      final rp = await cloud.rest('GET', '/rest/v1/profiles?u=eq.${Uri.encodeComponent(u)}&select=n,bio,pk,av');
+      Map? row;
+      if (rp.$1 == 200 && rp.$2 is List && (rp.$2 as List).isNotEmpty) row = (rp.$2 as List).first as Map;
+      final pk = await pubOf(sd);
+      String? avp;
+      final rav = row?['av'] as String?;
+      if (rav != null) {
+        final b = await cloud.download(rav);
+        if (b != null) {
+          final d = await getApplicationDocumentsDirectory();
+          avp = '${d.path}/my_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          await File(avp).writeAsBytes(b);
+          cavSrc = avp;
+          cav = rav;
+        }
+      }
+      pCtl.clear();
+      setState(() => me = Prof(u, (row?['n'] ?? u) as String, a: avp, k: pk, sd: sd, bio: row?['bio'] as String?));
+      save();
+      xkp = null;
+      initNet();
+    } finally {
+      if (mounted) setState(() => authBusy = false);
+    }
+  }
+
   Future<void> saveProfile() async {
     final u = uCtl.text.trim().toLowerCase(), n = nCtl.text.trim();
     if (!RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(u) || n.isEmpty) {
       return snack('اكتب اسمك، واسم مستخدم 3 حروف أو أكتر (إنجليزي/أرقام)');
+    }
+    final pw = pCtl.text;
+    if (!editing) {
+      if (pw.length < 6) return snack('كلمة السر لازم تكون 6 حروف أو أكتر');
+      if (pw != p2Ctl.text) return snack('كلمتا السر مش متطابقتين');
     }
     if (!editing && await nameTaken(u)) {
       setState(() => nameState = 'taken');
@@ -1223,8 +1372,29 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     }
     sd ??= base64Encode(List.generate(32, (_) => Random.secure().nextInt(256)));
     final pk = await pubOf(sd);
+    if (!editing) {
+      setState(() => authBusy = true);
+      final e = await cloud.signUp('$u@orx.app', pw);
+      if (e != null) {
+        setState(() {
+          authBusy = false;
+          if (e == 'taken') nameState = 'taken';
+        });
+        return snack(authErr(e));
+      }
+      if (!await uploadBackup(sd, pw)) snack('تحذير: ما اتحفظتش نسخة المفتاح، مش هتقدر تدخل من جهاز تاني');
+      pCtl.clear();
+      p2Ctl.clear();
+    } else if (kin.isNotEmpty) {
+      final pw2 = await askPassword('اكتب كلمة السر لتحديث نسخة المفتاح');
+      if (pw2 == null) return;
+      final e = await cloud.signIn('${me!.u}@orx.app', pw2);
+      if (e != null) return snack(authErr(e));
+      if (!await uploadBackup(sd, pw2)) snack('تعذر تحديث نسخة المفتاح');
+    }
     kCtl.clear();
     setState(() {
+      authBusy = false;
       me = Prof(u, n, a: tmpAv, k: pk, sd: sd, bio: bCtl.text.trim());
       editing = false;
     });
@@ -1398,62 +1568,115 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               textAlign: TextAlign.center, style: TextStyle(color: cs.onSurfaceVariant)),
           const SizedBox(height: 24),
         ],
-        Center(
-          child: GestureDetector(
-            onTap: pickAv,
-            child: Stack(children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: [cs.primary, cs.tertiary])),
-                child: av(tmpAv, r: 54, icon: Icons.add_a_photo),
-              ),
-              PositionedDirectional(
-                bottom: 2,
-                end: 2,
-                child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: cs.primary,
-                    child: Icon(Icons.edit, size: 16, color: cs.onPrimary)),
-              ),
-            ]),
+        if (!editing)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 'signup', label: Text('حساب جديد')),
+                ButtonSegment(value: 'login', label: Text('تسجيل الدخول')),
+              ],
+              selected: {authMode},
+              onSelectionChanged: (v) => setState(() {
+                authMode = v.first;
+                nameState = '';
+              }),
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-        TextField(controller: nCtl, decoration: fld(context, label: 'الاسم', icon: Icons.badge_outlined)),
-        const SizedBox(height: 12),
+        if (editing || authMode == 'signup') ...[
+          Center(
+            child: GestureDetector(
+              onTap: pickAv,
+              child: Stack(children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(colors: [cs.primary, cs.tertiary])),
+                  child: av(tmpAv, r: 54, icon: Icons.add_a_photo),
+                ),
+                PositionedDirectional(
+                  bottom: 2,
+                  end: 2,
+                  child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: cs.primary,
+                      child: Icon(Icons.edit, size: 16, color: cs.onPrimary)),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 24),
+          TextField(controller: nCtl, decoration: fld(context, label: 'الاسم', icon: Icons.badge_outlined)),
+          const SizedBox(height: 12),
+        ],
         TextField(
             controller: uCtl,
             readOnly: editing,
-            onChanged: editing ? null : onNameChanged,
+            autocorrect: false,
+            onChanged: (editing || authMode == 'login') ? null : onNameChanged,
             decoration: fld(context, label: 'اسم المستخدم', icon: Icons.alternate_email).copyWith(
-                helperText: editing
+                helperText: (editing || authMode == 'login')
                     ? null
                     : (nameState == 'ok'
                         ? T('الاسم متاح ✓')
                         : (nameState == 'checking'
                             ? T('بنتأكد من الاسم...')
                             : T('حروف إنجليزية وأرقام و _ فقط، ومينفعش تتغيّر بعد كده'))),
-                errorText: nameState == 'taken' ? T('الاسم ده محجوز لشخص تاني، اختار اسم مختلف') : null,
-                suffixIcon: nameState == 'ok' ? const Icon(Icons.check_circle_rounded, color: Colors.green) : null)),
+                errorText: (!editing && authMode == 'signup' && nameState == 'taken')
+                    ? T('الاسم ده محجوز لشخص تاني، اختار اسم مختلف')
+                    : null,
+                suffixIcon: (!editing && authMode == 'signup' && nameState == 'ok')
+                    ? const Icon(Icons.check_circle_rounded, color: Colors.green)
+                    : null)),
         const SizedBox(height: 12),
-        TextField(
-            controller: bCtl,
-            maxLines: 3,
-            maxLength: 120,
-            decoration: fld(context, label: 'نبذة عنك', icon: Icons.short_text)),
-        const SizedBox(height: 4),
-        TextField(
-            controller: kCtl,
-            decoration: fld(context, label: 'مفتاح المالك (للمالك فقط)', icon: Icons.key_outlined)),
+        if (!editing) ...[
+          TextField(
+              controller: pCtl,
+              obscureText: !showPw,
+              autocorrect: false,
+              decoration: fld(context, label: 'كلمة السر', icon: Icons.lock_outline_rounded).copyWith(
+                  suffixIcon: IconButton(
+                      icon: Icon(showPw ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                      onPressed: () => setState(() => showPw = !showPw)))),
+          const SizedBox(height: 12),
+          if (authMode == 'signup') ...[
+            TextField(
+                controller: p2Ctl,
+                obscureText: !showPw,
+                autocorrect: false,
+                decoration: fld(context, label: 'تأكيد كلمة السر', icon: Icons.lock_outline_rounded)),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text('لو نسيت كلمة السر مفيش استرجاع للحساب، فاحفظها كويس',
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+        if (editing || authMode == 'signup') ...[
+          TextField(
+              controller: bCtl,
+              maxLines: 3,
+              maxLength: 120,
+              decoration: fld(context, label: 'نبذة عنك', icon: Icons.short_text)),
+          const SizedBox(height: 4),
+          TextField(
+              controller: kCtl,
+              decoration: fld(context, label: 'مفتاح المالك (للمالك فقط)', icon: Icons.key_outlined)),
+        ],
         const SizedBox(height: 24),
         FilledButton(
           style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(54),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-          onPressed: saveProfile,
-          child: const Text('حفظ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          onPressed: authBusy ? null : ((!editing && authMode == 'login') ? doLogin : saveProfile),
+          child: authBusy
+              ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+              : Text(editing ? 'حفظ' : (authMode == 'login' ? 'دخول' : 'إنشاء حساب'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         ),
         if (!editing)
           TextButton(onPressed: openPolicy, child: const Text('بالمتابعة أنت توافق على سياسة الخصوصية')),
@@ -2654,6 +2877,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     netFatal = false;
     if (!await cloud.ensure()) {
       netMsg = cloud.err;
+      if (cloud.dead) netFatal = true;
       return false;
     }
     final xk = await xpub();
@@ -2674,7 +2898,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     }
     final r = await cloud.rest('POST', '/rest/v1/profiles?on_conflict=u',
         headers: {'Prefer': 'resolution=merge-duplicates,return=minimal'},
-        body: {'u': me!.u, 'n': me!.n, 'bio': me!.bio, 'av': av, 'pk': me!.k, 'xk': xk, 'xs': xs});
+        body: {'u': me!.u, 'n': me!.n, 'bio': me!.bio, if (av != null) 'av': av, 'pk': me!.k, 'xk': xk, 'xs': xs});
     if (r.$1 == 200 || r.$1 == 201 || r.$1 == 204) {
       netMsg = '';
       return true;
@@ -3503,6 +3727,22 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     await wipeLocal();
   }
 
+  Future<void> confirmLogout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('تسجيل الخروج'),
+        content: const Text(
+            'هتتمسح المحادثات والبيانات اللي على الجهاز ده. لما تدخل تاني بحسابك هترجع منشوراتك وبياناتك من السيرفر، لكن مش المحادثات القديمة.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('خروج')),
+        ],
+      ),
+    );
+    if (ok == true) await wipeLocal();
+  }
+
   Future<void> confirmReset() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -3547,6 +3787,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     bCtl.clear();
     kCtl.clear();
     nameState = '';
+    pCtl.clear();
+    p2Ctl.clear();
+    authMode = 'login';
+    cloud.dead = false;
     viewed.clear();
     myStoryLikes.clear();
     if (!mounted) return;
@@ -3587,6 +3831,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (!netReady) return snack(netMsg.isEmpty ? 'الإنترنت لسه بيتجهز، جرّب بعد ثواني' : netMsg);
     final t = TextEditingController();
     var list = <Map>[];
+    final cl = <String, Set<String>>{};
     var loading = true;
     var started = false;
     await showModalBottomSheet(
@@ -3600,6 +3845,16 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             if (r.$1 == 200 && r.$2 is List) {
               list = [for (final e in (r.$2 as List)) Map.from(e as Map)];
               ccount[p.id] = list.length;
+              cl.clear();
+              if (list.isNotEmpty) {
+                final ids = [for (final e in list) Uri.encodeComponent(e['id'] as String)].join(',');
+                final rl = await cloud.rest('GET', '/rest/v1/comment_likes?comment_id=in.($ids)&select=comment_id,u&limit=5000');
+                if (rl.$1 == 200 && rl.$2 is List) {
+                  for (final x in (rl.$2 as List)) {
+                    cl.putIfAbsent((x as Map)['comment_id'] as String, () => <String>{}).add(x['u'] as String);
+                  }
+                }
+              }
             }
             if (mounted) {
               st(() => loading = false);
@@ -3615,6 +3870,45 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             final ok = await srvInsert('comments', {'id': id, 'post_id': p.id, 'author': me!.u, 'body': body});
             if (!ok) snack('تعذر إرسال التعليق');
             await load();
+          }
+
+          Future<void> spark(String id) async {
+            if (!await cloud.ensure()) return snack('تعذر تسجيل التفاعل');
+            final set = cl.putIfAbsent(id, () => <String>{});
+            final had = set.contains(me!.u);
+            st(() => had ? set.remove(me!.u) : set.add(me!.u));
+            HapticFeedback.selectionClick();
+            final r = had
+                ? await cloud.rest('DELETE',
+                    '/rest/v1/comment_likes?comment_id=eq.${Uri.encodeComponent(id)}&u=eq.${Uri.encodeComponent(me!.u)}')
+                : await cloud.rest('POST', '/rest/v1/comment_likes',
+                    headers: {'Prefer': 'return=minimal,resolution=ignore-duplicates'},
+                    body: {'comment_id': id, 'u': me!.u});
+            if (r.$1 < 200 || r.$1 >= 300) {
+              st(() => had ? set.add(me!.u) : set.remove(me!.u));
+              snack('تعذر تسجيل التفاعل');
+            }
+          }
+
+          Widget sparkBtn(Map e) {
+            final id = e['id'] as String;
+            final set = cl[id] ?? const <String>{};
+            final on = set.contains(me!.u);
+            return InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => spark(id),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  SparkIcon(liked: on, size: 20),
+                  if (set.isNotEmpty)
+                    fw.Text('${set.length}',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: on ? const Color(0xFFFFC400) : Theme.of(c).colorScheme.onSurfaceVariant)),
+                ]),
+              ),
+            );
           }
 
           if (!started) {
@@ -3641,7 +3935,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                                   title: nm(e['author'] as String, prof(e['author'] as String).n,
                                       st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                                   subtitle: fw.Text((e['body'] ?? '') as String),
-                                  trailing: e['author'] == me!.u
+                                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                                    sparkBtn(e),
+                                    e['author'] == me!.u
                                       ? IconButton(
                                           icon: const Icon(Icons.delete_outline_rounded),
                                           onPressed: () async {
@@ -3651,6 +3947,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                                           },
                                         )
                                       : userMenu(e['author'] as String, postId: p.id),
+                                  ]),
                                 ),
                             ])),
                 ),
@@ -3770,12 +4067,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Future<bool> nameTaken(String u) async {
     try {
-      if (!await cloud.ensure()) return false;
-      final r = await cloud.rest('GET', '/rest/v1/profiles?u=eq.${Uri.encodeComponent(u)}&select=u,uid');
-      if (r.$1 == 200 && r.$2 is List && (r.$2 as List).isNotEmpty) {
-        final row = (r.$2 as List).first as Map;
-        return row['uid'] != cloud.uid;
-      }
+      final r = await cloud.rest('POST', '/rest/v1/rpc/username_available', body: {'p_u': u}, auth: false);
+      if (r.$1 == 200 && r.$2 is bool) return !(r.$2 as bool);
     } catch (_) {}
     return false;
   }
@@ -4252,6 +4545,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           it(Icons.flag_outlined, 'تقديم بلاغ', () => supportSheet(report: true)),
           it(Icons.help_outline_rounded, 'المساعدة والدعم', () => supportSheet()),
           it(Icons.privacy_tip_outlined, 'سياسة الخصوصية', openPolicy),
+          const Divider(),
+          it(Icons.logout_rounded, 'تسجيل الخروج', confirmLogout),
         ]),
       ),
     );
