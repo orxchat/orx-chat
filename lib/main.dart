@@ -3118,6 +3118,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       if (ok) {
         startNet();
         initPush();
+        syncAllBlocks();
       } else {
         if (netMsg.isNotEmpty && netFatal) snack(netMsg);
         if (!netFatal) {
@@ -3779,13 +3780,38 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       if (view == 'profile' && profU == u) view = 'feed';
     });
     save();
+    syncBlock(u, true);
     snack('تم الحظر');
   }
 
   void unblockUser(String u) {
     setState(() => blocked.remove(u));
     save();
+    syncBlock(u, false);
     snack('تم إلغاء الحظر');
+  }
+
+  Future<void> syncBlock(String u, bool on) async {
+    if (!netReady || me == null) return;
+    try {
+      if (!await cloud.ensure()) return;
+      if (on) {
+        await cloud.rest('POST', '/rest/v1/blocks?on_conflict=blocker,blocked',
+            headers: {'Prefer': 'resolution=ignore-duplicates,return=minimal'}, body: {'blocker': me!.u, 'blocked': u});
+      } else {
+        await cloud.rest('DELETE', '/rest/v1/blocks?blocker=eq.${enc(me!.u)}&blocked=eq.${enc(u)}');
+      }
+    } catch (_) {}
+  }
+
+  Future<void> syncAllBlocks() async {
+    if (blocked.isEmpty || me == null) return;
+    try {
+      if (!await cloud.ensure()) return;
+      await cloud.rest('POST', '/rest/v1/blocks?on_conflict=blocker,blocked',
+          headers: {'Prefer': 'resolution=ignore-duplicates,return=minimal'},
+          body: [for (final u in blocked) {'blocker': me!.u, 'blocked': u}]);
+    } catch (_) {}
   }
 
   Widget userMenu(String u, {String? postId, Color? color}) {
