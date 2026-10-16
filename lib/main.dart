@@ -143,6 +143,32 @@ const _en = <String, String>{
   'أتابعهم': 'Following',
   'الأصدقاء': 'Friends',
   'بحث': 'Search',
+  'متابعوني': 'Followers',
+  'الطلبات': 'Requests',
+  'عايز يتابعك': 'wants to follow you',
+  'اقبل طلبه عشان يشوف منشوراتك الخاصة.': 'Approve his request to let him see your private posts.',
+  'مفيش طلبات': 'No requests',
+  'طلبات المتابعة على حسابك الخاص هتظهر هنا': 'Follow requests for your private account will appear here',
+  'مفيش حد هنا لسه': 'Nobody here yet',
+  'ابحث عن ناس وتابعهم من المنشورات': 'Find people and follow them from posts',
+  'مفيش نتائج للبحث': 'No search results',
+  'ابحث عن شخص...': 'Search for a person...',
+  'طلبات أرسلتها': 'Requests you sent',
+  'إلغاء الطلب': 'Cancel request',
+  'طلب متابعة': 'Request to follow',
+  'حساب خاص': 'Private account',
+  'تابع الحساب ده عشان تشوف منشوراته': 'Follow this account to see its posts',
+  'الناس بتطلب متابعتك وانت بتوافق، ومنشوراتك وقصصك تظهر للمتابعين المقبولين بس': 'People request to follow you and you approve. Your posts and stories are visible to approved followers only',
+  'إظهار حالة الاتصال': 'Show online status',
+  'متصل الآن وآخر ظهور. لو قفلتها مش هتشوف حالة الناس كمان': 'Online now and last seen. If you turn it off you will not see others status either',
+  'الأصدقاء والمتابعون': 'Friends & followers',
+  'المتابعة بتحتاج إنترنت': 'Following needs internet',
+  'تعذر إلغاء المتابعة': 'Could not unfollow',
+  'تعذرت المتابعة': 'Could not follow',
+  'لازم تكون متصل بالإنترنت': 'You need to be online',
+  'تعذر حفظ الإعداد': 'Could not save the setting',
+  'تعذر تنفيذ العملية': 'Could not complete the action',
+  'تعذر فتح المحادثة': 'Could not open the chat',
   'حساب جديد': 'New account',
   'تسجيل الدخول': 'Log in',
   'دخول': 'Log in',
@@ -1106,7 +1132,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   final uCtl = TextEditingController(), nCtl = TextEditingController(), input = TextEditingController(), kCtl = TextEditingController();
   Prof? me;
   String? tmpAv, cur;
-  String view = 'home';
+  String view = 'feed';
   bool editing = false, on = false;
   final contacts = <String, Prof>{}, groups = <String, Grp>{};
   final who = <String, String>{}, found = <String, String>{};
@@ -1163,6 +1189,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           stats[e.key] = List<int>.from(e.value);
         }
         chatNet = j['chatNet'] != false;
+        isPrivate = j['priv'] == true;
+        showStatus = j['showSt'] != false;
         blocked.addAll(List<String>.from((j['blocked'] as List?) ?? []));
         myStoryLikes.addAll(List<String>.from((j['myStoryLikes'] as List?) ?? []));
         viewed.addAll(List<String>.from((j['viewed'] as List?) ?? []));
@@ -1202,6 +1230,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         'accent': accentIdx.value,
         'tmode': themeMode.value.index,
         'chatNet': chatNet,
+        'priv': isPrivate,
+        'showSt': showStatus,
         'blocked': blocked.toList(),
         'myStoryLikes': myStoryLikes.toList(),
         'viewed': viewed.toList(),
@@ -1320,7 +1350,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         cloud.uid = null;
         return snack('مفيش نسخة مفتاح محفوظة للحساب ده، مينفعش يتفتح على الجهاز ده');
       }
-      final rp = await cloud.rest('GET', '/rest/v1/profiles?u=eq.${Uri.encodeComponent(u)}&select=n,bio,pk,av');
+      final rp = await cloud.rest('GET', '/rest/v1/profiles?u=eq.${Uri.encodeComponent(u)}&select=n,bio,pk,av,is_private,show_status');
       Map? row;
       if (rp.$1 == 200 && rp.$2 is List && (rp.$2 as List).isNotEmpty) row = (rp.$2 as List).first as Map;
       final pk = await pubOf(sd);
@@ -1337,6 +1367,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         }
       }
       pCtl.clear();
+      isPrivate = row?['is_private'] == true;
+      showStatus = row?['show_status'] != false;
       setState(() => me = Prof(u, (row?['n'] ?? u) as String, a: avp, k: pk, sd: sd, bio: row?['bio'] as String?));
       save();
       xkp = null;
@@ -2224,6 +2256,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   // ---------- screens ----------
   final sCtl = TextEditingController(), bCtl = TextEditingController();
   final following = <String>{}, followers = <String>{}, myLikes = <String>{};
+  final pendingOut = <String>{}, reqIn = <String>{};
+  final pinfo = <String, Map>{};
+  bool isPrivate = false, showStatus = true;
+  String peopleTab = 'friends';
+  final pSearch = TextEditingController();
+  int hbTick = 0;
   final posts = <Post>[];
   final stats = <String, List<int>>{};
   final rec = AudioRecorder();
@@ -2232,7 +2270,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   int recSecs = 0;
   Timer? recTimer;
   String? playing, recPath;
-  String profU = '', back = 'home';
+  String profU = '', back = 'feed';
   static const reacts = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
   @override
@@ -2312,15 +2350,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         if (view == 'profile' && back != 'profile') {
           view = back;
         } else {
-          view = 'home';
+          view = view == 'near' ? 'home' : 'feed';
           cur = null;
         }
       });
 
   Widget navBar() {
     final cs = Theme.of(context).colorScheme;
-    // 0 الرئيسية (منشورات) | 1 اكتشف (ريلز) | 2 الأصدقاء (محادثات) | 3 حسابي
-    final sel = view == 'feed' ? 0 : (view == 'reels' ? 1 : (view == 'profile' ? 3 : 2));
+    // 0 الرئيسية (منشورات) | 1 اكتشف (ريلز) | 2 الأصدقاء | 3 حسابي
+    final sel = view == 'feed' ? 0 : (view == 'reels' ? 1 : (view == 'people' ? 2 : (view == 'profile' ? 3 : -1)));
     final items = <List<Object>>[
       [Icons.home_outlined, Icons.home_rounded, 'الرئيسية'],
       [Icons.explore_outlined, Icons.explore_rounded, 'اكتشف'],
@@ -2330,15 +2368,16 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     void go(int i) {
       HapticFeedback.selectionClick();
       setState(() {
-        back = 'home';
+        back = 'feed';
         if (i == 3) {
           view = 'profile';
           profU = me!.u;
         } else {
-          view = const ['feed', 'reels', 'home'][i];
+          view = const ['feed', 'reels', 'people'][i];
         }
       });
       if (i == 0 || i == 1) pullSocial();
+      if (i == 2) openPeople('friends');
       if (i == 3) fetchUser(me!.u);
     }
 
@@ -2463,7 +2502,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final otherProf = view == 'profile' && profU != me!.u;
     final owner = inChat && cur == 'g:${me!.u}';
     return PopScope(
-      canPop: view == 'home',
+      canPop: view == 'feed',
       onPopInvokedWithResult: (d, _) {
         if (!d) goBack();
       },
@@ -2494,8 +2533,16 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             if (!inChat && !otherProf && view != 'near')
               IconButton(
                   tooltip: T('الإشعارات'),
-                  icon: const Icon(Icons.notifications_none_rounded),
+                  icon: Badge(
+                      isLabelVisible: reqIn.isNotEmpty,
+                      label: fw.Text('${reqIn.length}'),
+                      child: const Icon(Icons.notifications_none_rounded)),
                   onPressed: notifSheet),
+            if (!inChat && !otherProf && view != 'home' && view != 'near')
+              IconButton(
+                  tooltip: T('المحادثات'),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded),
+                  onPressed: goHome),
             if (view == 'feed')
               IconButton(
                   tooltip: T('بحث'), icon: const Icon(Icons.search_rounded), onPressed: searchSheet),
@@ -2516,11 +2563,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         ),
         body: view == 'home'
             ? home()
-            : (view == 'feed'
+            : (view == 'people'
+                ? peopleView()
+                : (view == 'feed'
                 ? feed()
                 : (view == 'reels'
                     ? reelsView()
-                    : (view == 'near' ? near() : (view == 'profile' ? profileView(profU) : chat())))),
+                    : (view == 'near' ? near() : (view == 'profile' ? profileView(profU) : chat()))))),
         bottomNavigationBar: (inChat || otherProf) ? null : navBar(),
       ),
     );
@@ -2898,7 +2947,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     }
     final r = await cloud.rest('POST', '/rest/v1/profiles?on_conflict=u',
         headers: {'Prefer': 'resolution=merge-duplicates,return=minimal'},
-        body: {'u': me!.u, 'n': me!.n, 'bio': me!.bio, if (av != null) 'av': av, 'pk': me!.k, 'xk': xk, 'xs': xs});
+        body: {
+          'u': me!.u,
+          'n': me!.n,
+          'bio': me!.bio,
+          if (av != null) 'av': av,
+          'pk': me!.k,
+          'xk': xk,
+          'xs': xs,
+          'is_private': isPrivate,
+          'show_status': showStatus
+        });
     if (r.$1 == 200 || r.$1 == 201 || r.$1 == 204) {
       netMsg = '';
       return true;
@@ -3014,6 +3073,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     polling = true;
     try {
       if (!await cloud.ensure()) return;
+      if (++hbTick % 15 == 1) heartbeat();
       if (outbox.isNotEmpty) {
         final l = List<MapEntry<String, Map>>.of(outbox);
         outbox.clear();
@@ -3237,6 +3297,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     socialBusy = true;
     try {
       if (!await cloud.ensure()) return;
+      await syncFollows();
       bool mf(String a) => a == me!.u || following.contains(a);
       final r = await cloud.rest('GET', '/rest/v1/posts?select=*&kind=eq.post&order=created_at.desc&limit=80');
       final rr = await cloud.rest('GET', '/rest/v1/posts?select=*&kind=eq.reel&order=created_at.desc&limit=30');
@@ -3318,6 +3379,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Future<void> fetchUser(String u) async {
     if (!netReady || !await cloud.ensure()) return;
+    loadCounts(u);
+    loadInfo([u]);
     final r = await cloud.rest(
         'GET', '/rest/v1/posts?select=*&author=eq.${Uri.encodeComponent(u)}&order=created_at.desc&limit=60');
     if (r.$1 != 200 || r.$2 is! List) return;
@@ -3555,6 +3618,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   void blockUser(String u) {
+    dropFollows(u);
     setState(() {
       blocked.add(u);
       following.remove(u);
@@ -3562,7 +3626,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       stories.removeWhere((s) => s.from == u);
       if (cur == 'p:$u') cur = null;
       if (view == 'chat' && cur == null) view = 'home';
-      if (view == 'profile' && profU == u) view = 'home';
+      if (view == 'profile' && profU == u) view = 'feed';
     });
     save();
     snack('تم الحظر');
@@ -3789,6 +3853,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     nameState = '';
     pCtl.clear();
     p2Ctl.clear();
+    isPrivate = false;
+    showStatus = true;
+    pendingOut.clear();
+    reqIn.clear();
+    pinfo.clear();
     authMode = 'login';
     cloud.dead = false;
     viewed.clear();
@@ -3817,7 +3886,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       peers.clear();
       tmpAv = null;
       cur = null;
-      view = 'home';
+      view = 'feed';
       editing = false;
       on = false;
       netReady = false;
@@ -4295,12 +4364,377 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     }
   }
 
-  void toggleFollow(String u) {
+  String enc(String x) => Uri.encodeComponent(x);
+
+  /// المتابعة على السيرفر (حساب عام = مباشرة، حساب خاص = طلب)
+  Future<void> toggleFollow(String u) async {
+    if (!netReady || !await cloud.ensure()) return snack('المتابعة بتحتاج إنترنت');
+    final had = following.contains(u) || pendingOut.contains(u);
+    if (had) {
+      setState(() {
+        following.remove(u);
+        pendingOut.remove(u);
+      });
+      final r = await cloud.rest('DELETE', '/rest/v1/follows?follower=eq.${enc(me!.u)}&followee=eq.${enc(u)}');
+      if (r.$1 < 200 || r.$1 >= 300) snack('تعذر إلغاء المتابعة');
+    } else {
+      final r = await cloud.rest('POST', '/rest/v1/follows',
+          headers: {'Prefer': 'return=representation,resolution=ignore-duplicates'},
+          body: {'follower': me!.u, 'followee': u});
+      if (r.$1 < 200 || r.$1 >= 300) {
+        snack('تعذرت المتابعة');
+      } else {
+        var st = 'accepted';
+        if (r.$2 is List && (r.$2 as List).isNotEmpty) st = ((r.$2 as List).first as Map)['status'] as String;
+        setState(() {
+          if (st == 'pending') {
+            pendingOut.add(u);
+          } else {
+            following.add(u);
+          }
+        });
+        if (st == 'accepted') pullSocial();
+      }
+    }
+    save();
+    await syncFollows();
+  }
+
+  Future<void> syncFollows() async {
+    if (me == null || !netReady || !await cloud.ensure()) return;
+    final m = enc(me!.u);
+    final r = await cloud.rest('GET', '/rest/v1/follows?or=(follower.eq.$m,followee.eq.$m)&select=follower,followee,status&limit=5000');
+    if (r.$1 != 200 || r.$2 is! List) return;
+    final fg = <String>{}, fr = <String>{}, po = <String>{}, ri = <String>{};
+    for (final x in r.$2 as List) {
+      final a = (x as Map)['follower'] as String, b = x['followee'] as String, ok = x['status'] == 'accepted';
+      if (blocked.contains(a) || blocked.contains(b)) continue;
+      if (a == me!.u) {
+        (ok ? fg : po).add(b);
+      } else {
+        (ok ? fr : ri).add(a);
+      }
+    }
+    if (!mounted) return;
     setState(() {
-      if (!following.remove(u)) following.add(u);
+      following
+        ..clear()
+        ..addAll(fg);
+      followers
+        ..clear()
+        ..addAll(fr);
+      pendingOut
+        ..clear()
+        ..addAll(po);
+      reqIn
+        ..clear()
+        ..addAll(ri);
     });
     save();
-    sendUser(u, {'k': 'fs', 'f': following.contains(u)});
+    if (view == 'people') loadInfo({...fg, ...fr, ...po, ...ri});
+  }
+
+  Future<void> dropFollows(String u) async {
+    if (!netReady || !await cloud.ensure()) return;
+    final m = enc(me!.u), f = enc(u);
+    await cloud.rest('DELETE', '/rest/v1/follows?follower=eq.$m&followee=eq.$f');
+    await cloud.rest('DELETE', '/rest/v1/follows?follower=eq.$f&followee=eq.$m');
+  }
+
+  Future<void> loadInfo(Iterable<String> us) async {
+    final need = us.where((u) => u != me?.u).toSet();
+    if (need.isEmpty || !netReady || !await cloud.ensure()) return;
+    final r = await cloud.rest('GET',
+        '/rest/v1/profiles?u=in.(${need.map(enc).join(',')})&select=u,n,av,last_seen,show_status,is_private&limit=500');
+    if (r.$1 != 200 || r.$2 is! List || !mounted) return;
+    setState(() {
+      for (final x in r.$2 as List) {
+        pinfo[(x as Map)['u'] as String] = Map.from(x);
+      }
+    });
+  }
+
+  Future<void> loadCounts(String u) async {
+    final r = await cloud.rest('POST', '/rest/v1/rpc/follow_counts', body: {'p_u': u});
+    if (r.$1 == 200 && r.$2 is Map && mounted) {
+      final m = r.$2 as Map;
+      setState(() => stats[u] = [(m['fr'] ?? 0) as int, (m['fg'] ?? 0) as int]);
+    }
+  }
+
+  Future<void> heartbeat() async {
+    if (!showStatus || me == null) return;
+    await cloud.rest('PATCH', '/rest/v1/profiles?u=eq.${enc(me!.u)}',
+        headers: {'Prefer': 'return=minimal'}, body: {'last_seen': DateTime.now().toUtc().toIso8601String()});
+  }
+
+  Future<void> setProfileFlag(Map<String, dynamic> f) async {
+    if (!netReady || !await cloud.ensure()) return snack('لازم تكون متصل بالإنترنت');
+    final r = await cloud.rest('PATCH', '/rest/v1/profiles?u=eq.${enc(me!.u)}',
+        headers: {'Prefer': 'return=minimal'}, body: f);
+    if (r.$1 < 200 || r.$1 >= 300) {
+      snack('تعذر حفظ الإعداد');
+    } else if (f.containsKey('is_private')) {
+      syncFollows();
+    }
+  }
+
+  Future<void> answerReq(String u, bool ok) async {
+    if (!netReady || !await cloud.ensure()) return snack('لازم تكون متصل بالإنترنت');
+    final m = enc(me!.u), f = enc(u);
+    final r = ok
+        ? await cloud.rest('PATCH', '/rest/v1/follows?follower=eq.$f&followee=eq.$m',
+            headers: {'Prefer': 'return=minimal'}, body: {'status': 'accepted'})
+        : await cloud.rest('DELETE', '/rest/v1/follows?follower=eq.$f&followee=eq.$m');
+    if (r.$1 < 200 || r.$1 >= 300) return snack('تعذر تنفيذ العملية');
+    setState(() {
+      reqIn.remove(u);
+      if (ok) followers.add(u);
+    });
+    save();
+    syncFollows();
+  }
+
+  Future<void> messageUser(String u) async {
+    if (contacts[u]?.k == null) {
+      if (!netReady) return snack('لازم تكون متصل بالإنترنت');
+      if (await cloudProfile(u) == null) return snack('تعذر فتح المحادثة');
+    }
+    setState(() {
+      cur = 'p:$u';
+      view = 'chat';
+    });
+  }
+
+  void openPeople(String tab) {
+    setState(() {
+      peopleTab = tab;
+      pSearch.clear();
+      view = 'people';
+    });
+    syncFollows();
+    loadInfo({...following, ...followers, ...pendingOut, ...reqIn});
+  }
+
+  // ---------- الأشخاص: أصدقاء / أتابعهم / متابعوني / طلبات ----------
+  String pName(String u) => contacts[u]?.n ?? (pinfo[u]?['n'] as String?) ?? u;
+
+  Widget pAv(String u, {double r = 24}) {
+    final c = contacts[u];
+    final av = pinfo[u]?['av'] as String?;
+    ImageProvider? img;
+    if (c?.a != null && File(c!.a!).existsSync()) {
+      img = FileImage(File(c.a!));
+    } else if (av != null) {
+      img = NetworkImage('$sbUrl/storage/v1/object/public/orx/$av');
+    }
+    return CircleAvatar(radius: r, backgroundImage: img, child: img == null ? const Icon(Icons.person_rounded) : null);
+  }
+
+  String statusText(String u) {
+    if (!showStatus) return '';
+    final p = pinfo[u];
+    if (p == null || p['show_status'] == false) return '';
+    final ls = DateTime.tryParse((p['last_seen'] ?? '').toString())?.toLocal();
+    if (ls == null) return '';
+    final m = DateTime.now().difference(ls).inMinutes;
+    if (m < 2) return 'متصل الآن';
+    if (m < 60) return isEn ? 'Last seen ${m}m ago' : 'آخر ظهور منذ $m د';
+    if (m < 1440) return isEn ? 'Last seen ${m ~/ 60}h ago' : 'آخر ظهور منذ ${m ~/ 60} س';
+    return isEn ? 'Last seen ${m ~/ 1440}d ago' : 'آخر ظهور منذ ${m ~/ 1440} يوم';
+  }
+
+  Widget personRow(String u, {Widget? trailing}) {
+    final cs = Theme.of(context).colorScheme;
+    final st = statusText(u);
+    final on = st == 'متصل الآن';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: Material(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => openProf(u),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              Stack(children: [
+                pAv(u),
+                if (on)
+                  PositionedDirectional(
+                    bottom: 0,
+                    end: 0,
+                    child: Container(
+                      width: 13,
+                      height: 13,
+                      decoration: BoxDecoration(
+                          color: const Color(0xFF22C55E),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cs.surfaceContainerLow, width: 2.5)),
+                    ),
+                  ),
+              ]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  nm(u, pName(u), st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  fw.Text(st.isNotEmpty ? (on ? T(st) : st) : '\u200e@$u',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: on ? const Color(0xFF22C55E) : cs.onSurfaceVariant)),
+                ]),
+              ),
+              if (trailing != null) trailing,
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget requestCard(String u) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(22),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            InkWell(
+              onTap: () => openProf(u),
+              child: Row(children: [
+                pAv(u, r: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    nm(u, pName(u), st: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    fw.Text('\u200e@$u', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                  ]),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 10),
+            Text('عايز يتابعك', style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text('اقبل طلبه عشان يشوف منشوراتك الخاصة.', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+                    onPressed: () => answerReq(u, false),
+                    child: const Text('رفض')),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+                    onPressed: () => answerReq(u, true),
+                    child: const Text('قبول')),
+              ),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget peopleView() {
+    final cs = Theme.of(context).colorScheme;
+    final q = pSearch.text.trim().toLowerCase();
+    final fr = following.where((u) => followers.contains(u)).toList();
+    final tabs = <List<Object>>[
+      ['friends', 'الأصدقاء', fr.length],
+      ['following', 'أتابعهم', following.length],
+      ['followers', 'متابعوني', followers.length],
+      ['requests', 'الطلبات', reqIn.length],
+    ];
+    final base = peopleTab == 'friends'
+        ? fr
+        : (peopleTab == 'following' ? following.toList() : (peopleTab == 'followers' ? followers.toList() : reqIn.toList()));
+    bool hit(String u) => q.isEmpty || u.contains(q) || pName(u).toLowerCase().contains(q);
+    final list = base.where((u) => !blocked.contains(u) && hit(u)).toList()
+      ..sort((a, b) => pName(a).toLowerCase().compareTo(pName(b).toLowerCase()));
+    final pend = peopleTab == 'following' ? pendingOut.where(hit).toList() : <String>[];
+    Widget msgBtn(String u) => FilledButton.tonal(
+        style: FilledButton.styleFrom(
+            minimumSize: const Size(0, 38), padding: const EdgeInsets.symmetric(horizontal: 14)),
+        onPressed: () => messageUser(u),
+        child: const Text('رسالة'));
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+        child: TextField(
+          controller: pSearch,
+          onChanged: (_) => setState(() {}),
+          decoration: fld(context, hint: 'ابحث عن شخص...', icon: Icons.search_rounded),
+        ),
+      ),
+      Row(children: [
+        for (final t in tabs)
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => peopleTab = t[0] as String),
+              child: Column(children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 6),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Text(t[1] as String,
+                        style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: peopleTab == t[0] ? FontWeight.w800 : FontWeight.w500,
+                            color: peopleTab == t[0] ? cs.primary : cs.onSurfaceVariant)),
+                    if (t[0] == 'requests' && (t[2] as int) > 0)
+                      Container(
+                        margin: const EdgeInsetsDirectional.only(start: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(10)),
+                        child: fw.Text('${t[2]}',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: cs.onPrimary)),
+                      ),
+                  ]),
+                ),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  height: 3,
+                  width: peopleTab == t[0] ? 28 : 0,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    borderRadius: BorderRadius.circular(2),
+                    boxShadow: peopleTab == t[0] ? [BoxShadow(color: cs.primary.withOpacity(0.7), blurRadius: 8)] : null,
+                  ),
+                ),
+              ]),
+            ),
+          ),
+      ]),
+      const SizedBox(height: 6),
+      Expanded(
+        child: (list.isEmpty && pend.isEmpty)
+            ? (peopleTab == 'requests'
+                ? empty(Icons.shield_outlined, 'مفيش طلبات', 'طلبات المتابعة على حسابك الخاص هتظهر هنا')
+                : empty(Icons.people_outline_rounded, 'مفيش حد هنا لسه',
+                    q.isEmpty ? 'ابحث عن ناس وتابعهم من المنشورات' : 'مفيش نتائج للبحث'))
+            : ListView(padding: const EdgeInsets.only(bottom: 12), children: [
+                for (final u in list)
+                  peopleTab == 'requests' ? requestCard(u) : personRow(u, trailing: msgBtn(u)),
+                if (pend.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                    child: Text('طلبات أرسلتها', style: TextStyle(fontWeight: FontWeight.w700, color: cs.onSurfaceVariant)),
+                  ),
+                  for (final u in pend)
+                    personRow(u,
+                        trailing: OutlinedButton(
+                            onPressed: () => toggleFollow(u), child: const Text('إلغاء الطلب'))),
+                ],
+              ]),
+      ),
+    ]);
   }
 
   void toggleLike(Post p) {
@@ -4540,6 +4974,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               ),
             ]),
           ),
+          it(Icons.people_alt_outlined, 'الأصدقاء والمتابعون', () => openPeople('friends')),
+          it(Icons.chat_bubble_outline_rounded, 'المحادثات', goHome),
           it(Icons.palette_outlined, 'المظهر والإعدادات', appearance),
           it(Icons.block_rounded, 'الحسابات المحظورة', showBlocked),
           it(Icons.flag_outlined, 'تقديم بلاغ', () => supportSheet(report: true)),
@@ -4664,6 +5100,30 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   },
                 ),
                 const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('حساب خاص'),
+                  subtitle: const Text('الناس بتطلب متابعتك وانت بتوافق، ومنشوراتك وقصصك تظهر للمتابعين المقبولين بس'),
+                  value: isPrivate,
+                  onChanged: (v) {
+                    setState(() => isPrivate = v);
+                    save();
+                    st(() {});
+                    setProfileFlag({'is_private': v});
+                  },
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('إظهار حالة الاتصال'),
+                  subtitle: const Text('متصل الآن وآخر ظهور. لو قفلتها مش هتشوف حالة الناس كمان'),
+                  value: showStatus,
+                  onChanged: (v) {
+                    setState(() => showStatus = v);
+                    save();
+                    st(() {});
+                    setProfileFlag({'show_status': v});
+                  },
+                ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.privacy_tip_outlined),
@@ -4889,8 +5349,20 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         child: Column(children: [
           Text(T('الإشعارات'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           Expanded(
-            child: empty(Icons.notifications_none_rounded, T('مفيش إشعارات'),
-                T('إشعارات الرسائل والمتابعات والتعليقات هتظهر هنا قريباً')),
+            child: reqIn.isEmpty
+                ? empty(Icons.notifications_none_rounded, T('مفيش إشعارات'),
+                    T('إشعارات الرسائل والمتابعات والتعليقات هتظهر هنا قريباً'))
+                : ListView(children: [
+                    ListTile(
+                      leading: const Icon(Icons.person_add_alt_1_rounded),
+                      title: fw.Text(isEn ? '${reqIn.length} follow request(s)' : '${reqIn.length} طلب متابعة جديد'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () {
+                        Navigator.pop(context);
+                        openPeople('requests');
+                      },
+                    ),
+                  ]),
           ),
         ]),
       ),
@@ -5125,8 +5597,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           Expanded(
             child: Row(children: [
               stat('منشورات', ps.length, null),
-              stat('متابعون', nFollowers, mine ? () => showUsers('المتابعون', followers) : null),
-              stat('يتابع', nFollowing, mine ? () => showUsers('يتابع', following) : null),
+              stat('متابعون', nFollowers, mine ? () => openPeople('followers') : null),
+              stat('يتابع', nFollowing, mine ? () => openPeople('following') : null),
             ]),
           ),
         ]),
@@ -5193,9 +5665,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               ])
             : Row(children: [
                 Expanded(
-                  child: isFol
-                      ? FilledButton.tonal(onPressed: () => toggleFollow(u), child: const Text('إلغاء المتابعة'))
-                      : FilledButton(onPressed: () => toggleFollow(u), child: const Text('متابعة')),
+                  child: (isFol || pendingOut.contains(u))
+                      ? FilledButton.tonal(
+                          onPressed: () => toggleFollow(u),
+                          child: Text(isFol ? 'إلغاء المتابعة' : 'إلغاء الطلب'))
+                      : FilledButton(
+                          onPressed: () => toggleFollow(u),
+                          child: Text(pinfo[u]?['is_private'] == true ? 'طلب متابعة' : 'متابعة')),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -5210,7 +5686,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               ]),
       ),
       const Divider(height: 1),
-      if (ps.isEmpty)
+      if (!mine && !isFol && pinfo[u]?['is_private'] == true)
+        Padding(
+          padding: const EdgeInsets.only(top: 40),
+          child: empty(Icons.lock_outline_rounded, 'حساب خاص', 'تابع الحساب ده عشان تشوف منشوراته'),
+        )
+      else if (ps.isEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 40),
           child: empty(Icons.photo_library_outlined, 'مفيش منشورات',
