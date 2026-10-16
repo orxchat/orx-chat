@@ -4,6 +4,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart' show AudioPlayer, DeviceFileSource;
+import 'package:firebase_core/firebase_core.dart' show Firebase;
+import 'package:firebase_messaging/firebase_messaging.dart' show AuthorizationStatus, FirebaseMessaging, RemoteMessage;
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/widgets.dart' as fw show Text;
 import 'package:flutter/services.dart' show Clipboard, ClipboardData, HapticFeedback;
@@ -143,6 +145,16 @@ const _en = <String, String>{
   'أتابعهم': 'Following',
   'الأصدقاء': 'Friends',
   'بحث': 'Search',
+  'طلب توثيق': 'Request verification',
+  'طلبات التوثيق': 'Verification requests',
+  'هيوصل الطلب لمالك التطبيق. اكتب سبب قصير (اختياري).': 'The request goes to the app owner. Add a short reason (optional).',
+  'مثال: صانع محتوى / شركة': 'e.g. creator / company',
+  'تم إرسال طلب التوثيق': 'Verification request sent',
+  'تعذر إرسال الطلب': 'Could not send the request',
+  'تعذر تحميل بيانات الشخص': 'Could not load this person',
+  'مفيش طلبات توثيق': 'No verification requests',
+  'الطلبات الجديدة هتظهر هنا': 'New requests will show up here',
+  'توثيق': 'Verify',
   'خصوصية الحساب': 'Account privacy',
   'حساب عام': 'Public',
   'إدارة الحساب': 'Manage account',
@@ -347,14 +359,16 @@ ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال ال
 • الرسائل والصور والتسجيلات الصوتية والمنشورات والريلز (مقاطع الفيديو القصيرة) والقصص والتعليقات التي ترسلها.
 • مفاتيح تشفير تُنشأ على جهازك لإثبات هويتك وتشفير رسائلك.
 • كلمة السر: تُعالج عبر مصادقة Supabase ولا نراها نحن. وتُحفظ على الخادم نسخة من مفتاحك الخاص مشفّرة بكلمة سرك، فلا يمكننا قراءتها. إذا نسيت كلمة السر فلا يمكن استرجاع الحساب.
+• علاقات المتابعة وطلبات المتابعة، وكون حسابك عاما أو خاصا.
+• التفاعلات (⚡) التي تضعها على المنشورات والقصص والتعليقات.
 
 3) كيف تنتقل الرسائل
 • الوضع القريب: تنتقل الرسائل مباشرة بين الجهازين عبر البلوتوث أو الواي فاي المباشر (Google Nearby Connections) ولا تمر عبر خوادمنا.
-• وضع الإنترنت: تُشفَّر الرسائل على جهازك قبل رفعها. يخزن الخادم (المستضاف لدى Supabase) الرسالة المشفرة موجهة إلى المعرّف المجهول للمستلم إلى أن يستلمها جهازه. وتُشفَّر الصور والتسجيلات والملفات المرسلة في المحادثات قبل الرفع. لا نستطيع قراءة محتوى رسائلك.
-• ما يمكن للخادم رؤيته: المعرّف المجهول للحساب، واسم المرسل، ومعرّف المستلم، ووقت وحجم الرسائل.
+• وضع الإنترنت: تُشفَّر الرسائل على جهازك قبل رفعها. يخزن الخادم (المستضاف لدى Supabase) الرسالة المشفرة موجهة إلى معرّف حساب المستلم إلى أن يستلمها جهازه. وتُشفَّر الصور والتسجيلات والملفات المرسلة في المحادثات قبل الرفع. لا نستطيع قراءة محتوى رسائلك.
+• ما يمكن للخادم رؤيته: معرّف الحساب، واسم المرسل، ومعرّف المستلم، ووقت وحجم الرسائل.
 
 4) الملف العام والمحتوى العام
-عند استخدام ميزات الإنترنت، تُخزَّن بيانات ملفك (اسم المستخدم، الاسم، النبذة، الصورة، المفاتيح العامة) على الخادم ويمكن لأي شخص العثور عليها بالبحث عن اسم المستخدم. لا تضع معلومات حساسة في ملفك. المنشورات والريلز والقصص والتعليقات وصورها وفيديوهاتها والإعجابات محتوى عام: تُخزَّن على الخادم دون تشفير من طرف إلى طرف ويمكن لمستخدمي التطبيق الآخرين رؤيتها. لا تنشر ما تريد إبقاءه خاصا. يمكنك الإبلاغ عن أي مستخدم أو محتوى وحظر أي مستخدم من داخل التطبيق، وقد نراجع البلاغات ونحذف المحتوى المخالف أو نوقف الحسابات المسيئة. كما نسجّل مشاهداتك للمنشورات والقصص وإعجاباتك على القصص ليرى صاحب المحتوى الأعداد فقط.
+عند استخدام ميزات الإنترنت، تُخزَّن بيانات ملفك (اسم المستخدم، الاسم، النبذة، الصورة، المفاتيح العامة) على الخادم ويمكن لأي شخص العثور عليها بالبحث عن اسم المستخدم. لا تضع معلومات حساسة في ملفك. المنشورات والريلز والقصص والتعليقات وصورها وفيديوهاتها والإعجابات محتوى عام: تُخزَّن على الخادم دون تشفير من طرف إلى طرف ويمكن لمستخدمي التطبيق الآخرين رؤيتها. لا تنشر ما تريد إبقاءه خاصا. يمكنك الإبلاغ عن أي مستخدم أو محتوى وحظر أي مستخدم من داخل التطبيق، وقد نراجع البلاغات ونحذف المحتوى المخالف أو نوقف الحسابات المسيئة. كما نسجّل مشاهداتك للمنشورات والقصص وإعجاباتك على القصص ليرى صاحب المحتوى الأعداد فقط. وحالة اتصالك وآخر ظهور لك تظهر للمستخدمين الآخرين ما لم تُوقف خيار «إظهار حالة الاتصال» في التطبيق (وعند إيقافه لا ترى حالة الآخرين أيضا). وإذا جعلت حسابك خاصا فلا تظهر منشوراتك وقصصك إلا للمتابعين الذين توافق عليهم (يُطبَّق ذلك على الخادم)، بينما يمكن العثور على اسم المستخدم والاسم والنبذة والصورة بالبحث.
 
 5) المعلومات المخزنة على جهازك
 تُخزَّن المحادثات وجهات الاتصال والمنشورات والقصص والإعدادات ومفاتيحك الخاصة في مساحة التطبيق الخاصة على هاتفك. عند حذف التطبيق أو مسح بياناته تُحذف من جهازك ولا نستطيع استرجاعها.
@@ -397,14 +411,16 @@ ORX is a chat app that works over Bluetooth / nearby connections and over the in
 • Messages, photos, voice messages, posts, reels (short videos), stories and comments you send.
 • Cryptographic keys generated on your device to prove your identity and encrypt your messages.
 • Password: handled by Supabase authentication and never visible to us. A copy of your private key is stored on the server encrypted with your password, so we cannot read it. If you forget your password the account cannot be recovered.
+• Your follow relationships and follow requests, and whether your account is public or private.
+• Reactions (⚡) you give to posts, stories and comments.
 
 3) How messages travel
 • Nearby mode: messages go directly between the two devices over Bluetooth or Wi-Fi Direct (Google Nearby Connections). They do not pass through our servers.
-• Internet mode: messages are encrypted on your device before they are uploaded. Our server (hosted by Supabase) stores the encrypted message addressed to the recipient's anonymous ID until their device collects it. Photos, voice messages and files sent in chats are encrypted before upload. We cannot read the content of your messages.
-• What the server can see: the anonymous account ID, the sender's username, the recipient's ID, and the time and size of messages.
+• Internet mode: messages are encrypted on your device before they are uploaded. Our server (hosted by Supabase) stores the encrypted message addressed to the recipient's account ID until their device collects it. Photos, voice messages and files sent in chats are encrypted before upload. We cannot read the content of your messages.
+• What the server can see: the account ID, the sender's username, the recipient's ID, and the time and size of messages.
 
 4) Public profile and public content
-When you use internet features, your profile data (username, display name, bio, photo, public keys) is stored on the server and can be found by anyone who searches for your username. Do not put sensitive information in your profile. Posts, reels, stories, comments, their photos and videos, and likes are public content: they are stored on the server without end-to-end encryption and can be seen by other users of the app. Do not publish anything you want to keep private. You can report any user or content and block any user from inside the app. We may review reports and remove violating content or suspend abusive accounts. We also record which posts and stories you view and your likes on stories, so that the content owner can see counts only.
+When you use internet features, your profile data (username, display name, bio, photo, public keys) is stored on the server and can be found by anyone who searches for your username. Do not put sensitive information in your profile. Posts, reels, stories, comments, their photos and videos, and likes are public content: they are stored on the server without end-to-end encryption and can be seen by other users of the app. Do not publish anything you want to keep private. You can report any user or content and block any user from inside the app. We may review reports and remove violating content or suspend abusive accounts. We also record which posts and stories you view and your likes on stories, so that the content owner can see counts only. Your online status and last-seen time are visible to other users unless you turn off "Show online status" in the app (if you turn it off you also do not see others' status). If you set your account to private, your posts and stories are visible only to followers you approve (enforced on the server), while your username, name, bio and photo can still be found by search.
 
 5) Information stored on your device
 Chats, contacts, posts, stories, settings and your private keys are kept in the app's private storage on your phone. If you uninstall the app or clear its data they are deleted from your device, and we cannot restore them.
@@ -451,6 +467,11 @@ class PolicyPage extends StatelessWidget {
   }
 }
 
+bool fcmOn = false;
+
+@pragma('vm:entry-point')
+Future<void> orxBgHandler(RemoteMessage m) async {}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -465,6 +486,11 @@ Future<void> main() async {
       final t = j['tmode'];
       if (t is int && t >= 0 && t < ThemeMode.values.length) themeMode.value = ThemeMode.values[t];
     }
+  } catch (_) {}
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(orxBgHandler);
+    fcmOn = true;
   } catch (_) {}
   runApp(const App());
 }
@@ -1464,8 +1490,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (k == ownerPk) return 'o';
     final c = certs[k];
     if (c != null && c['r'] == 'v' && c['u'] == u) return 'v';
-    final fc = (me != null && u == me!.u) ? followers.length : (stats[u]?[0] ?? 0);
-    return fc >= kAutoVerifyFollowers ? 'v' : null;
+    return autoV[u] == true ? 'v' : null;
   }
 
   Widget badge(String u, {double s = 16}) {
@@ -1518,6 +1543,101 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   void sendCerts(String id) {
     if (certs.isNotEmpty) sendJ(id, {'k': 'c', 'l': certs.values.toList()});
+  }
+
+  Future<void> requestVerify() async {
+    final t = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('طلب توثيق'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('هيوصل الطلب لمالك التطبيق. اكتب سبب قصير (اختياري).'),
+          const SizedBox(height: 12),
+          TextField(controller: t, maxLength: 120, decoration: fld(c, hint: 'مثال: صانع محتوى / شركة')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('إرسال')),
+        ],
+      ),
+    );
+    final note = t.text.trim();
+    t.dispose();
+    if (ok != true) return;
+    if (!netReady || !await cloud.ensure()) return snack('لازم تكون متصل بالإنترنت');
+    final r = await cloud.rest('POST', '/rest/v1/verify_requests',
+        headers: {'Prefer': 'return=minimal,resolution=ignore-duplicates'},
+        body: {'u': me!.u, if (note.isNotEmpty) 'note': note});
+    snack(r.$1 >= 200 && r.$1 < 300 ? 'تم إرسال طلب التوثيق' : 'تعذر إرسال الطلب');
+  }
+
+  void verifySheet() {
+    var list = <Map>[];
+    var loading = true, started = false;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (c) => StatefulBuilder(builder: (c, st) {
+        Future<void> load() async {
+          if (!await cloud.ensure()) return;
+          final r = await cloud.rest('GET', '/rest/v1/verify_requests?select=*&order=created_at.asc&limit=100');
+          if (r.$1 == 200 && r.$2 is List) {
+            list = [for (final e in r.$2 as List) Map.from(e as Map)];
+            loadInfo({for (final e in list) e['u'] as String});
+          }
+          if (mounted) st(() => loading = false);
+        }
+
+        Future<void> answer(String u, bool yes) async {
+          if (yes) {
+            if (contacts[u]?.k == null) await cloudProfile(u, fresh: true);
+            if (contacts[u]?.k == null) return snack('تعذر تحميل بيانات الشخص');
+            await setVerify(u, true);
+          }
+          await cloud.rest('DELETE', '/rest/v1/verify_requests?u=eq.${enc(u)}');
+          await load();
+        }
+
+        if (!started) {
+          started = true;
+          load();
+        }
+        return SizedBox(
+          height: MediaQuery.of(c).size.height * 0.7,
+          child: Column(children: [
+            const Text('طلبات التوثيق', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Expanded(
+              child: loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : (list.isEmpty
+                      ? empty(Icons.verified_outlined, 'مفيش طلبات توثيق', 'الطلبات الجديدة هتظهر هنا')
+                      : ListView(children: [
+                          for (final e in list)
+                            ListTile(
+                              leading: pAv(e['u'] as String, r: 22),
+                              title: nm(e['u'] as String, pName(e['u'] as String)),
+                              subtitle: fw.Text('\u200e@${e['u']}${(e['note'] ?? '').toString().isEmpty ? '' : '\n${e['note']}'}'),
+                              isThreeLine: (e['note'] ?? '').toString().isNotEmpty,
+                              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                                IconButton(
+                                    tooltip: T('رفض'),
+                                    icon: const Icon(Icons.close_rounded),
+                                    onPressed: () => answer(e['u'] as String, false)),
+                                IconButton(
+                                    tooltip: T('توثيق'),
+                                    icon: const Icon(Icons.verified_rounded, color: Color(0xFF3B9EFF)),
+                                    onPressed: () => answer(e['u'] as String, true)),
+                              ]),
+                            ),
+                        ])),
+            ),
+          ]),
+        );
+      }),
+    );
   }
 
   Future<void> setVerify(String u, bool v) async {
@@ -2261,6 +2381,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   final sCtl = TextEditingController(), bCtl = TextEditingController();
   final following = <String>{}, followers = <String>{}, myLikes = <String>{};
   final pendingOut = <String>{}, reqIn = <String>{};
+  final autoV = <String, bool>{};
+  bool pushDone = false;
+  String? pushToken;
+  final pushSubs = <StreamSubscription>[];
   final pinfo = <String, Map>{};
   bool isPrivate = false, showStatus = true;
   String peopleTab = 'friends';
@@ -2993,6 +3117,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       setState(() => netReady = ok);
       if (ok) {
         startNet();
+        initPush();
       } else {
         if (netMsg.isNotEmpty && netFatal) snack(netMsg);
         if (!netFatal) {
@@ -3829,7 +3954,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         ],
       ),
     );
-    if (ok == true) await wipeLocal();
+    if (ok == true) {
+      await unregisterPush();
+      await wipeLocal();
+    }
   }
 
   Future<void> confirmReset() async {
@@ -4121,6 +4249,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Future<void> refreshStats() async {
     if (!netReady || me == null || !await cloud.ensure()) return;
     await pullOwnerStats();
+    if (me != null) loadAuto([me!.u]);
     if (mounted) setState(() {});
   }
 
@@ -4477,12 +4606,92 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Future<void> loadInfo(Iterable<String> us) async {
     final need = us.where((u) => u != me?.u).toSet();
     if (need.isEmpty || !netReady || !await cloud.ensure()) return;
+    loadAuto(need);
     final r = await cloud.rest('GET',
         '/rest/v1/profiles?u=in.(${need.map(enc).join(',')})&select=u,n,av,last_seen,show_status,is_private&limit=500');
     if (r.$1 != 200 || r.$2 is! List || !mounted) return;
     setState(() {
       for (final x in r.$2 as List) {
         pinfo[(x as Map)['u'] as String] = Map.from(x);
+      }
+    });
+  }
+
+  // ---------- الإشعارات (FCM) ----------
+  Future<void> initPush() async {
+    if (!fcmOn || me == null || !netReady || pushDone) return;
+    try {
+      final fm = FirebaseMessaging.instance;
+      final perm = await fm.requestPermission();
+      if (perm.authorizationStatus == AuthorizationStatus.denied) return;
+      final tok = await fm.getToken();
+      if (tok == null) return;
+      pushDone = true;
+      await savePushToken(tok);
+      pushSubs
+        ..add(fm.onTokenRefresh.listen(savePushToken))
+        ..add(FirebaseMessaging.onMessage.listen(onPushForeground))
+        ..add(FirebaseMessaging.onMessageOpenedApp.listen(onPushOpen));
+      final first = await fm.getInitialMessage();
+      if (first != null) onPushOpen(first);
+    } catch (_) {
+      pushDone = false;
+    }
+  }
+
+  Future<void> savePushToken(String t) async {
+    pushToken = t;
+    if (!await cloud.ensure()) return;
+    await cloud.rest('POST', '/rest/v1/rpc/register_push_token', body: {'p_token': t});
+  }
+
+  Future<void> unregisterPush() async {
+    for (final sub in pushSubs) {
+      sub.cancel();
+    }
+    pushSubs.clear();
+    pushDone = false;
+    if (!fcmOn) return;
+    try {
+      if (pushToken != null && await cloud.ensure()) {
+        await cloud.rest('POST', '/rest/v1/rpc/unregister_push_token', body: {'p_token': pushToken});
+      }
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (_) {}
+    pushToken = null;
+  }
+
+  void onPushForeground(RemoteMessage m) {
+    final d = m.data;
+    if (d['t'] == 'msg' && cur == 'p:${d['from']}') return;
+    if (d['t'] == 'req' || d['t'] == 'follow') syncFollows();
+    final txt = [m.notification?.title, m.notification?.body].whereType<String>().join(': ');
+    if (txt.isNotEmpty && mounted) snack(txt);
+  }
+
+  void onPushOpen(RemoteMessage m) {
+    final d = m.data;
+    final t = d['t'];
+    if (t == 'msg' && d['from'] != null) {
+      messageUser(d['from'].toString());
+    } else if (t == 'req') {
+      openPeople('requests');
+    } else if (t == 'follow') {
+      openPeople('friends');
+    } else if (mounted) {
+      setState(() => view = 'feed');
+    }
+  }
+
+  Future<void> loadAuto(Iterable<String> us) async {
+    final l = us.toSet().toList();
+    if (l.isEmpty || !netReady || !await cloud.ensure()) return;
+    final r = await cloud.rest('POST', '/rest/v1/rpc/auto_verified_among', body: {'p_us': l});
+    if (r.$1 != 200 || r.$2 is! List || !mounted) return;
+    final yes = {for (final x in r.$2 as List) x.toString()};
+    setState(() {
+      for (final u in l) {
+        autoV[u] = yes.contains(u);
       }
     });
   }
@@ -5017,6 +5226,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           it(Icons.flag_outlined, 'تقديم بلاغ', () => supportSheet(report: true)),
           it(Icons.help_outline_rounded, 'المساعدة والدعم', () => supportSheet()),
           it(Icons.privacy_tip_outlined, 'سياسة الخصوصية', openPolicy),
+          if (isOwner) it(Icons.how_to_reg_outlined, 'طلبات التوثيق', verifySheet),
+          if (!isOwner && role(me!.u) == null) it(Icons.verified_outlined, 'طلب توثيق', requestVerify),
           it(Icons.manage_accounts_outlined, 'إدارة الحساب', accountSheet),
           const Divider(),
           it(Icons.logout_rounded, 'تسجيل الخروج', confirmLogout),
