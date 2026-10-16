@@ -143,6 +143,10 @@ const _en = <String, String>{
   'أتابعهم': 'Following',
   'الأصدقاء': 'Friends',
   'بحث': 'Search',
+  'خصوصية الحساب': 'Account privacy',
+  'حساب عام': 'Public',
+  'إدارة الحساب': 'Manage account',
+  'أي حد يقدر يتابعك مباشرة ويشوف منشوراتك وقصصك': 'Anyone can follow you directly and see your posts and stories',
   'متابعوني': 'Followers',
   'الطلبات': 'Requests',
   'عايز يتابعك': 'wants to follow you',
@@ -368,7 +372,7 @@ ORX تطبيق دردشة يعمل عبر البلوتوث والاتصال ال
 تستضيف Supabase قاعدة البيانات والمصادقة (اسم المستخدم وكلمة السر) وتخزين الملفات، وتنطبق سياسة الخصوصية الخاصة بها على معالجتها.
 
 9) الاحتفاظ والحذف
-قد تبقى الرسائل والملفات المشفرة على الخادم إلى أن تُحذف، وقد نحذف القديم منها دوريا. يمكنك حذف حسابك وكل بياناتك المخزنة على الخادم (الملف العام والمنشورات والريلز والقصص والتعليقات والرسائل والملفات) في أي وقت من داخل التطبيق: زر المظهر ثم حذف الحساب. ويمكنك أيضا مراسلتنا على البريد أعلاه مع اسم المستخدم.
+قد تبقى الرسائل والملفات المشفرة على الخادم إلى أن تُحذف، وقد نحذف القديم منها دوريا. يمكنك حذف حسابك وكل بياناتك المخزنة على الخادم (الملف العام والمنشورات والريلز والقصص والتعليقات والرسائل والملفات) في أي وقت من داخل التطبيق: القائمة الجانبية ثم إدارة الحساب ثم حذف الحساب. ويمكنك أيضا مراسلتنا على البريد أعلاه مع اسم المستخدم.
 
 10) الأمان
 نستخدم تشفيرا من طرف إلى طرف لرسائل الإنترنت. لا يوجد نظام آمن بالكامل، فحافظ على حماية هاتفك.
@@ -418,7 +422,7 @@ No ads, no analytics or tracking tools, and we do not sell or share your data wi
 Supabase hosts the database, authentication (username and password) and file storage. Its own privacy policy applies to its processing.
 
 9) Retention and deletion
-Encrypted messages and files may stay on the server until they are deleted, and we may delete old ones periodically. You can delete your account and all your server-side data (public profile, posts, reels, stories, comments, messages and files) at any time from inside the app: the appearance button, then Delete account. You can also email us at the address above with your username.
+Encrypted messages and files may stay on the server until they are deleted, and we may delete old ones periodically. You can delete your account and all your server-side data (public profile, posts, reels, stories, comments, messages and files) at any time from inside the app: side menu, then Account management, then Delete account. You can also email us at the address above with your username.
 
 10) Security
 We use end-to-end encryption for internet messages. No system is perfectly secure, so keep your phone protected.
@@ -2231,8 +2235,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ring('إضافة', const CircleAvatar(radius: 22, child: Icon(Icons.add_rounded)), addStory, false),
           for (final e in by.entries)
             ring(
-              e.key == me!.u ? 'قصتي' : prof(e.key).n,
-              av(prof(e.key).a),
+              e.key == me!.u ? 'قصتي' : pName(e.key),
+              pAv(e.key, r: 22),
               () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -2378,7 +2382,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       });
       if (i == 0 || i == 1) pullSocial();
       if (i == 2) openPeople('friends');
-      if (i == 3) fetchUser(me!.u);
+      if (i == 3) {
+        fetchUser(me!.u);
+        refreshStats();
+      }
     }
 
     Widget item(int i) {
@@ -2538,11 +2545,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                       label: fw.Text('${reqIn.length}'),
                       child: const Icon(Icons.notifications_none_rounded)),
                   onPressed: notifSheet),
-            if (!inChat && !otherProf && view != 'home' && view != 'near')
-              IconButton(
-                  tooltip: T('المحادثات'),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded),
-                  onPressed: goHome),
             if (view == 'feed')
               IconButton(
                   tooltip: T('بحث'), icon: const Icon(Icons.search_rounded), onPressed: searchSheet),
@@ -2570,6 +2572,16 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 : (view == 'reels'
                     ? reelsView()
                     : (view == 'near' ? near() : (view == 'profile' ? profileView(profU) : chat()))))),
+        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+        floatingActionButton: (inChat || otherProf || view == 'home' || view == 'near')
+            ? null
+            : FloatingActionButton.small(
+                heroTag: 'chats_fab',
+                tooltip: T('المحادثات'),
+                backgroundColor: cs.primaryContainer,
+                foregroundColor: cs.onPrimaryContainer,
+                onPressed: goHome,
+                child: const Icon(Icons.chat_bubble_rounded)),
         bottomNavigationBar: (inChat || otherProf) ? null : navBar(),
       ),
     );
@@ -2846,6 +2858,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     } else if (st == AppLifecycleState.paused) {
       poll?.cancel();
       socialTimer?.cancel();
+      statsTimer?.cancel();
     }
   }
 
@@ -2999,6 +3012,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     pollNet();
     socialTimer?.cancel();
     socialTimer = Timer.periodic(const Duration(seconds: 45), (_) => pullSocial());
+    statsTimer?.cancel();
+    statsTimer = Timer.periodic(const Duration(seconds: 12), (_) => refreshStats());
     pullSocial();
   }
 
@@ -3223,7 +3238,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   bool get exploreTab => feedTab == 0;
   int reelIdx = 0;
   PageController reelCtl = PageController();
-  Timer? socialTimer;
+  Timer? socialTimer, statsTimer;
 
   String pubUrl(String p) => '$sbUrl/storage/v1/object/public/orx/$p';
 
@@ -3333,6 +3348,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ..clear()
           ..addAll(l);
       }
+      loadInfo({for (final p in [...posts, ...explore, ...reelsList]) p.from});
+      pullOwnerStats();
       await syncLikes(<Post>[...posts.where((p) => p.srv), ...explore, ...reelsList]);
 
       final since = DateTime.now().toUtc().subtract(const Duration(hours: 24)).toIso8601String();
@@ -3340,23 +3357,31 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           '/rest/v1/stories?select=*&created_at=gt.${Uri.encodeComponent(since)}&order=created_at.asc&limit=100');
       if (rs.$1 == 200 && rs.$2 is List) {
         final dir = await getApplicationDocumentsDirectory();
+        final todo = <Map>[];
         for (final row in rs.$2 as List) {
           final m = Map.from(row as Map);
           final a = m['author'] as String;
           final sid = m['id'] as String;
           if (!mf(a) || blocked.contains(a) || stories.any((s) => s.sid == sid)) continue;
+          todo.add(m);
+        }
+        final got = await Future.wait(todo.map((m) async {
           final media = m['media'] as String?;
-          String? pth;
-          if (media != null) {
-            final b = await cloud.download(media);
-            if (b == null) continue;
-            pth = '${dir.path}/st_$sid.jpg';
-            await File(pth).writeAsBytes(b);
-          }
-          stories.add(Story(a,
+          if (media == null) return (m, null as String?, true);
+          final b = await cloud.download(media);
+          if (b == null) return (m, null as String?, false);
+          final pth = '${dir.path}/st_${m['id']}.jpg';
+          await File(pth).writeAsBytes(b);
+          return (m, pth, true);
+        }));
+        for (final g in got) {
+          if (!g.$3) continue;
+          final m = g.$1;
+          if (stories.any((s) => s.sid == m['id'])) continue;
+          stories.add(Story(m['author'] as String,
               text: m['body'] as String?,
-              img: pth,
-              sid: sid,
+              img: g.$2,
+              sid: m['id'] as String,
               at: DateTime.parse(m['created_at'] as String).toLocal()));
         }
         stories.removeWhere((s) => !s.live);
@@ -3516,9 +3541,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             GestureDetector(
               onTap: () => openProf(p.from),
               child: Row(children: [
-                av(pr.a, r: 18),
+                pAv(p.from, r: 18),
                 const SizedBox(width: 8),
-                Flexible(child: fw.Text(pr.n, style: white, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Flexible(child: fw.Text(pName(p.from), style: white, maxLines: 1, overflow: TextOverflow.ellipsis)),
                 if (p.from != me!.u) ...[
                   const SizedBox(width: 8),
                   OutlinedButton(
@@ -3826,6 +3851,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Future<void> wipeLocal() async {
     poll?.cancel();
     socialTimer?.cancel();
+    statsTimer?.cancel();
     try {
       Nearby().stopAllEndpoints();
       Nearby().stopAdvertising();
@@ -3914,6 +3940,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             if (r.$1 == 200 && r.$2 is List) {
               list = [for (final e in (r.$2 as List)) Map.from(e as Map)];
               ccount[p.id] = list.length;
+              loadInfo({for (final e in list) e['author'] as String});
               cl.clear();
               if (list.isNotEmpty) {
                 final ids = [for (final e in list) Uri.encodeComponent(e['id'] as String)].join(',');
@@ -4000,8 +4027,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                           : ListView(children: [
                               for (final e in shown)
                                 ListTile(
-                                  leading: av(prof(e['author'] as String).a, r: 16),
-                                  title: nm(e['author'] as String, prof(e['author'] as String).n,
+                                  leading: pAv(e['author'] as String, r: 16),
+                                  title: nm(e['author'] as String, pName(e['author'] as String),
                                       st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                                   subtitle: fw.Text((e['body'] ?? '') as String),
                                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -4089,6 +4116,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             body: {'story_id': id, 'u': me!.u})
         : await cloud.rest('DELETE', '/rest/v1/story_likes?story_id=eq.${Uri.encodeComponent(id)}&u=eq.${me!.u}');
     if (r.$1 < 200 || r.$1 >= 300) snack('تعذر تسجيل الإعجاب');
+  }
+
+  Future<void> refreshStats() async {
+    if (!netReady || me == null || !await cloud.ensure()) return;
+    await pullOwnerStats();
+    if (mounted) setState(() {});
   }
 
   Future<void> pullOwnerStats() async {
@@ -4517,10 +4550,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   // ---------- الأشخاص: أصدقاء / أتابعهم / متابعوني / طلبات ----------
-  String pName(String u) => contacts[u]?.n ?? (pinfo[u]?['n'] as String?) ?? u;
+  String pName(String u) => u == me?.u ? me!.n : (contacts[u]?.n ?? (pinfo[u]?['n'] as String?) ?? u);
 
   Widget pAv(String u, {double r = 24}) {
-    final c = contacts[u];
+    final Prof? c = u == me?.u ? me : contacts[u];
     final av = pinfo[u]?['av'] as String?;
     ImageProvider? img;
     if (c?.a != null && File(c!.a!).existsSync()) {
@@ -4923,8 +4956,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                     : ListView(shrinkWrap: true, children: [
                         for (final u in us)
                           ListTile(
-                            leading: av(prof(u).a),
-                            title: nm(u, prof(u).n),
+                            leading: pAv(u, r: 22),
+                            title: nm(u, pName(u)),
                             subtitle: Text('\u200e@$u'),
                             onTap: () {
                               Navigator.pop(c);
@@ -4976,11 +5009,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ),
           it(Icons.people_alt_outlined, 'الأصدقاء والمتابعون', () => openPeople('friends')),
           it(Icons.chat_bubble_outline_rounded, 'المحادثات', goHome),
-          it(Icons.palette_outlined, 'المظهر والإعدادات', appearance),
+          it(Icons.palette_outlined, 'المظهر', themeSheet),
+          it(Icons.language_rounded, 'اللغة', langSheet),
+          it(Icons.lock_outline_rounded, 'خصوصية الحساب', privacySheet),
+          it(Icons.wifi_rounded, 'الدردشة عبر الإنترنت', chatSheet),
           it(Icons.block_rounded, 'الحسابات المحظورة', showBlocked),
           it(Icons.flag_outlined, 'تقديم بلاغ', () => supportSheet(report: true)),
           it(Icons.help_outline_rounded, 'المساعدة والدعم', () => supportSheet()),
           it(Icons.privacy_tip_outlined, 'سياسة الخصوصية', openPolicy),
+          it(Icons.manage_accounts_outlined, 'إدارة الحساب', accountSheet),
           const Divider(),
           it(Icons.logout_rounded, 'تسجيل الخروج', confirmLogout),
         ]),
@@ -5029,142 +5066,148 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     );
   }
 
-  void appearance() => showModalBottomSheet(
+  void sheet(String title, List<Widget> Function(BuildContext c, StateSetter st) body) => showModalBottomSheet(
         context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.92),
         builder: (c) => StatefulBuilder(
           builder: (c, st) => SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('المظهر', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 16),
-                const Text('لون التطبيق'),
-                const SizedBox(height: 12),
-                Wrap(spacing: 14, runSpacing: 14, children: [
-                  for (var i = 0; i < accents.length; i++)
-                    GestureDetector(
-                      onTap: () {
-                        accentIdx.value = i;
-                        save();
-                        st(() {});
-                      },
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: accents[i],
-                        child: accentIdx.value == i ? const Icon(Icons.check, color: Colors.white) : null,
-                      ),
-                    ),
-                ]),
-                const SizedBox(height: 20),
-                const Text('الوضع'),
-                const SizedBox(height: 8),
-                SegmentedButton<ThemeMode>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: ThemeMode.system, label: Text('تلقائي')),
-                    ButtonSegment(value: ThemeMode.light, label: Text('فاتح')),
-                    ButtonSegment(value: ThemeMode.dark, label: Text('داكن')),
-                  ],
-                  selected: {themeMode.value},
-                  onSelectionChanged: (s) {
-                    themeMode.value = s.first;
-                    save();
-                    st(() {});
-                  },
-                ),
-                const SizedBox(height: 20),
-                const Text('اللغة'),
-                const SizedBox(height: 8),
-                SegmentedButton<String>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: 'ar', label: fw.Text('العربية')),
-                    ButtonSegment(value: 'en', label: fw.Text('English')),
-                  ],
-                  selected: {langCode.value},
-                  onSelectionChanged: (s) {
-                    langCode.value = s.first;
-                    save();
-                    st(() {});
-                  },
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('الدردشة عبر الإنترنت'),
-                  subtitle: const Text('لو قفلتها، الرسائل بتتبعت بس لما تكونوا قريبين من بعض (بلوتوث)'),
-                  value: chatNet,
-                  onChanged: (v) {
-                    setState(() => chatNet = v);
-                    save();
-                    st(() {});
-                  },
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('حساب خاص'),
-                  subtitle: const Text('الناس بتطلب متابعتك وانت بتوافق، ومنشوراتك وقصصك تظهر للمتابعين المقبولين بس'),
-                  value: isPrivate,
-                  onChanged: (v) {
-                    setState(() => isPrivate = v);
-                    save();
-                    st(() {});
-                    setProfileFlag({'is_private': v});
-                  },
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('إظهار حالة الاتصال'),
-                  subtitle: const Text('متصل الآن وآخر ظهور. لو قفلتها مش هتشوف حالة الناس كمان'),
-                  value: showStatus,
-                  onChanged: (v) {
-                    setState(() => showStatus = v);
-                    save();
-                    st(() {});
-                    setProfileFlag({'show_status': v});
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.privacy_tip_outlined),
-                  title: const Text('سياسة الخصوصية'),
-                  onTap: () {
-                    Navigator.pop(c);
-                    openPolicy();
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.block_rounded),
-                  title: const Text('الحسابات المحظورة'),
-                  onTap: () {
-                    Navigator.pop(c);
-                    showBlocked();
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.restart_alt_rounded),
-                  title: const Text('إعادة ضبط التطبيق'),
-                  onTap: () {
-                    Navigator.pop(c);
-                    confirmReset();
-                  },
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.delete_forever_rounded, color: Theme.of(c).colorScheme.error),
-                  title: Text('حذف الحساب', style: TextStyle(color: Theme.of(c).colorScheme.error)),
-                  onTap: () {
-                    Navigator.pop(c);
-                    confirmDelete();
-                  },
-                ),
+                ...body(c, st),
               ]),
             ),
           ),
         ),
       );
+
+  void themeSheet() => sheet('المظهر', (c, st) => [
+        const Text('لون التطبيق'),
+        const SizedBox(height: 12),
+        Wrap(spacing: 14, runSpacing: 14, children: [
+          for (var i = 0; i < accents.length; i++)
+            GestureDetector(
+              onTap: () {
+                accentIdx.value = i;
+                save();
+                st(() {});
+              },
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: accents[i],
+                child: accentIdx.value == i ? const Icon(Icons.check, color: Colors.white) : null,
+              ),
+            ),
+        ]),
+        const SizedBox(height: 20),
+        const Text('الوضع'),
+        const SizedBox(height: 8),
+        SegmentedButton<ThemeMode>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(value: ThemeMode.system, label: Text('تلقائي')),
+            ButtonSegment(value: ThemeMode.light, label: Text('فاتح')),
+            ButtonSegment(value: ThemeMode.dark, label: Text('داكن')),
+          ],
+          selected: {themeMode.value},
+          onSelectionChanged: (v) {
+            themeMode.value = v.first;
+            save();
+            st(() {});
+          },
+        ),
+      ]);
+
+  void langSheet() => sheet('اللغة', (c, st) => [
+        SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(value: 'ar', label: fw.Text('العربية')),
+            ButtonSegment(value: 'en', label: fw.Text('English')),
+          ],
+          selected: {langCode.value},
+          onSelectionChanged: (v) {
+            langCode.value = v.first;
+            save();
+            st(() {});
+          },
+        ),
+      ]);
+
+  void privacySheet() => sheet('خصوصية الحساب', (c, st) => [
+        SegmentedButton<bool>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(value: false, icon: Icon(Icons.public_rounded), label: Text('حساب عام')),
+            ButtonSegment(value: true, icon: Icon(Icons.lock_outline_rounded), label: Text('حساب خاص')),
+          ],
+          selected: {isPrivate},
+          onSelectionChanged: (v) {
+            setState(() => isPrivate = v.first);
+            save();
+            st(() {});
+            setProfileFlag({'is_private': v.first});
+          },
+        ),
+        const SizedBox(height: 10),
+        Text(
+            isPrivate
+                ? 'الناس بتطلب متابعتك وانت بتوافق، ومنشوراتك وقصصك تظهر للمتابعين المقبولين بس'
+                : 'أي حد يقدر يتابعك مباشرة ويشوف منشوراتك وقصصك',
+            style: TextStyle(color: Theme.of(c).colorScheme.onSurfaceVariant)),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('إظهار حالة الاتصال'),
+          subtitle: const Text('متصل الآن وآخر ظهور. لو قفلتها مش هتشوف حالة الناس كمان'),
+          value: showStatus,
+          onChanged: (v) {
+            setState(() => showStatus = v);
+            save();
+            st(() {});
+            setProfileFlag({'show_status': v});
+          },
+        ),
+      ]);
+
+  void chatSheet() => sheet('الدردشة عبر الإنترنت', (c, st) => [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('الدردشة عبر الإنترنت'),
+          subtitle: const Text('لو قفلتها، الرسائل بتتبعت بس لما تكونوا قريبين من بعض (بلوتوث)'),
+          value: chatNet,
+          onChanged: (v) {
+            setState(() => chatNet = v);
+            save();
+            st(() {});
+          },
+        ),
+      ]);
+
+  void accountSheet() => sheet('إدارة الحساب', (c, st) => [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.restart_alt_rounded),
+          title: const Text('إعادة ضبط التطبيق'),
+          onTap: () {
+            Navigator.pop(c);
+            confirmReset();
+          },
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.delete_forever_rounded, color: Theme.of(c).colorScheme.error),
+          title: Text('حذف الحساب', style: TextStyle(color: Theme.of(c).colorScheme.error)),
+          onTap: () {
+            Navigator.pop(c);
+            confirmDelete();
+          },
+        ),
+      ]);
 
   void openNet(String url) => Navigator.push(
         context,
@@ -5240,11 +5283,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(children: [
-              av(pr.a, r: 20),
+              pAv(p.from, r: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  nm(p.from, pr.n, st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  nm(p.from, pName(p.from), st: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   Text(ago(p.at), style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
                   friendTag(p.from),
                 ]),
@@ -5371,24 +5414,78 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   void searchSheet() {
     final q = TextEditingController();
+    var srvUs = <String>[];
+    var srvPs = <Post>[];
+    var busy = false;
+    Timer? deb;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (c) => StatefulBuilder(builder: (c, setS) {
         final t = q.text.trim().toLowerCase();
-        final us = t.isEmpty
-            ? <Prof>[]
+        void run(String t) {
+          deb?.cancel();
+          if (t.length < 2) {
+            setS(() {
+              srvUs = [];
+              srvPs = [];
+              busy = false;
+            });
+            return;
+          }
+          deb = Timer(const Duration(milliseconds: 400), () async {
+            if (!netReady || !await cloud.ensure()) return;
+            final k = t.replaceAll(RegExp(r'[,()*%\\]'), '');
+            if (k.length < 2) return;
+            setS(() => busy = true);
+            final e = Uri.encodeComponent(k);
+            final rs = await Future.wait([
+              cloud.rest('GET', '/rest/v1/profiles?or=(u.ilike.*$e*,n.ilike.*$e*)&select=u,n,av,is_private&limit=20'),
+              cloud.rest('GET',
+                  '/rest/v1/posts?kind=eq.post&body=ilike.*$e*&select=*&order=created_at.desc&limit=12'),
+            ]);
+            if (q.text.trim().toLowerCase() != t) return;
+            final us = <String>[];
+            if (rs[0].$1 == 200 && rs[0].$2 is List) {
+              for (final x in rs[0].$2 as List) {
+                final m = Map.from(x as Map);
+                final u = m['u'] as String;
+                if (u == me?.u || blocked.contains(u)) continue;
+                pinfo[u] = m;
+                us.add(u);
+              }
+            }
+            final ps = <Post>[];
+            if (rs[1].$1 == 200 && rs[1].$2 is List) {
+              for (final x in rs[1].$2 as List) {
+                final pp = rowToPost(Map.from(x as Map));
+                if (pp != null && !blocked.contains(pp.from)) ps.add(pp);
+              }
+              loadInfo({for (final pp in ps) pp.from});
+            }
+            if (!mounted) return;
+            setS(() {
+              srvUs = us;
+              srvPs = ps;
+              busy = false;
+            });
+          });
+        }
+
+        final local = t.isEmpty
+            ? <String>[]
             : contacts.values
-                .where((p) => !blocked.contains(p.u) && (p.u.toLowerCase().contains(t) || p.n.toLowerCase().contains(t)))
-                .take(8)
+                .where((p) => p.u != me?.u && !blocked.contains(p.u) && (p.u.toLowerCase().contains(t) || p.n.toLowerCase().contains(t)))
+                .map((p) => p.u)
                 .toList();
+        final users = <String>{...local, ...srvUs}.take(20).toList();
         final seen = <String>{};
         final ps = t.isEmpty
             ? <Post>[]
-            : [...posts, ...explore]
-                .where((p) => p.kind == 'post' && !blocked.contains(p.from) && (p.text ?? '').toLowerCase().contains(t) && seen.add(p.id))
-                .take(12)
-                .toList();
+            : [
+                ...srvPs,
+                ...[...posts, ...explore].where((p) => p.kind == 'post' && (p.text ?? '').toLowerCase().contains(t))
+              ].where((p) => !blocked.contains(p.from) && seen.add(p.id)).take(15).toList();
         return SafeArea(
           child: Padding(
             padding: EdgeInsets.only(bottom: MediaQuery.of(c).viewInsets.bottom),
@@ -5400,33 +5497,38 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   child: TextField(
                     controller: q,
                     autofocus: true,
-                    onChanged: (_) => setS(() {}),
+                    onChanged: (v) {
+                      setS(() {});
+                      run(v.trim().toLowerCase());
+                    },
                     decoration: fld(c, hint: 'ابحث عن أشخاص ومنشورات...', icon: Icons.search_rounded),
                   ),
                 ),
+                if (busy) const LinearProgressIndicator(minHeight: 2),
                 Expanded(
                   child: ListView(children: [
-                    for (final p in us)
+                    for (final u in users)
                       ListTile(
-                        leading: av(p.a, r: 20),
-                        title: fw.Text(p.n),
-                        subtitle: Text('\u200e@${p.u}'),
+                        leading: pAv(u, r: 20),
+                        title: nm(u, pName(u)),
+                        subtitle: Text('\u200e@$u'),
+                        trailing: pinfo[u]?['is_private'] == true ? const Icon(Icons.lock_outline_rounded, size: 18) : null,
                         onTap: () {
                           Navigator.pop(c);
-                          openProf(p.u);
+                          openProf(u);
                         },
                       ),
                     for (final p in ps)
                       ListTile(
                         leading: const Icon(Icons.article_outlined),
                         title: fw.Text(p.text ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
-                        subtitle: fw.Text(prof(p.from).n),
+                        subtitle: fw.Text(pName(p.from)),
                         onTap: () {
                           Navigator.pop(c);
                           showPost(p);
                         },
                       ),
-                    if (t.isNotEmpty && us.isEmpty && ps.isEmpty)
+                    if (t.isNotEmpty && !busy && users.isEmpty && ps.isEmpty)
                       Padding(padding: const EdgeInsets.all(24), child: Center(child: Text('مفيش نتايج'))),
                   ]),
                 ),
@@ -5435,7 +5537,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ),
         );
       }),
-    ).whenComplete(q.dispose);
+    ).whenComplete(() {
+      deb?.cancel();
+      q.dispose();
+    });
   }
 
   Widget feed() {
