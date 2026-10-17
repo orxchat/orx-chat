@@ -8,7 +8,7 @@ import 'package:firebase_core/firebase_core.dart' show Firebase;
 import 'package:firebase_messaging/firebase_messaging.dart' show AuthorizationStatus, FirebaseMessaging, RemoteMessage;
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/widgets.dart' as fw show Text;
-import 'package:flutter/services.dart' show Clipboard, ClipboardData, HapticFeedback;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData, HapticFeedback, MethodChannel;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nearby_connections/nearby_connections.dart';
@@ -38,7 +38,13 @@ const accents = [
   Color(0xFFEF6C00),
   Color(0xFF1565C0),
   Color(0xFF455A64),
+  // ألوان ORX Plus الحصرية (من kPlusFrom وطالع)
+  Color(0xFFAB47BC),
+  Color(0xFFFFB300),
+  Color(0xFF00E676),
+  Color(0xFFFF4081),
 ];
+const kPlusFrom = 6;
 final accentIdx = ValueNotifier<int>(0);
 final themeMode = ValueNotifier<ThemeMode>(ThemeMode.dark);
 
@@ -93,6 +99,16 @@ const _en = <String, String>{
   'القريبة': 'Nearby',
   'حسابي': 'Profile',
   'المظهر': 'Settings',
+  'أصوات الإشعارات': 'Notification sounds',
+  'هذا اللون لمشتركي ORX Plus': 'This color is for ORX Plus subscribers',
+  'شارة ORX Plus بجانب اسمك': 'ORX Plus badge next to your name',
+  'أولوية لمنشوراتك في الاكتشاف (3 أيام من نشرها)': 'Priority for your posts in Explore (for 3 days after posting)',
+  'ألوان حصرية للتطبيق': 'Exclusive app colors',
+  'لكل نوع إشعار قناة مستقلة بصوتها. اضغط على أي نوع لتغيير صوته أو اهتزازه من إعدادات أندرويد.': 'Each notification type has its own channel and sound. Tap one to change its sound or vibration in Android settings.',
+  'الرسائل (ORX Pulse)': 'Messages (ORX Pulse)',
+  'طلبات المتابعة (ORX Request)': 'Follow requests (ORX Request)',
+  'التفاعلات والتعليقات (ORX Soft)': 'Activity and comments (ORX Soft)',
+  'تعذر فتح إعدادات الصوت': "Couldn't open sound settings",
   'إضافة صديق': 'Add friend',
   'ابدأ المحادثة': 'Start a conversation',
   'ابحث في المحادثات': 'Search chats',
@@ -1498,10 +1514,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Widget badge(String u, {double s = 16}) {
     final r = role(u);
-    if (r == null) return const SizedBox.shrink();
+    final plus = plusU[u] == true;
+    if (r == null && !plus) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsetsDirectional.only(start: 4),
-      child: Icon(Icons.verified, size: s, color: r == 'o' ? const Color(0xFFFFB300) : const Color(0xFF1E88E5)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (r != null)
+          Icon(Icons.verified, size: s, color: r == 'o' ? const Color(0xFFFFB300) : const Color(0xFF1E88E5)),
+        if (plus) Icon(Icons.auto_awesome, size: s - 1, color: const Color(0xFFAB47BC)),
+      ]),
     );
   }
 
@@ -2385,6 +2406,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   final following = <String>{}, followers = <String>{}, myLikes = <String>{};
   final pendingOut = <String>{}, reqIn = <String>{};
   final autoV = <String, bool>{};
+  final plusU = <String, bool>{};
+  DateTime? plusUntil;
+  bool get isPlus => me != null && plusU[me!.u] == true;
+  bool plusBoost(Post p) => plusU[p.from] == true && DateTime.now().difference(p.at).inDays < 3;
   bool pushDone = false;
   String? pushToken;
   final pushSubs = <StreamSubscription>[];
@@ -4752,13 +4777,40 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final l = us.toSet().toList();
     if (l.isEmpty || !netReady || !await cloud.ensure()) return;
     final r = await cloud.rest('POST', '/rest/v1/rpc/auto_verified_among', body: {'p_us': l});
+    if (r.$1 == 200 && r.$2 is List && mounted) {
+      final yes = {for (final x in r.$2 as List) x.toString()};
+      setState(() {
+        for (final u in l) {
+          autoV[u] = yes.contains(u);
+        }
+      });
+    }
+    await loadPlus(l);
+  }
+
+  Future<void> loadPlus(List<String> l) async {
+    final r = await cloud.rest('POST', '/rest/v1/rpc/plus_among', body: {'p_us': l});
     if (r.$1 != 200 || r.$2 is! List || !mounted) return;
     final yes = {for (final x in r.$2 as List) x.toString()};
     setState(() {
       for (final u in l) {
-        autoV[u] = yes.contains(u);
+        plusU[u] = yes.contains(u);
       }
     });
+    if (me != null && l.contains(me!.u)) {
+      if (yes.contains(me!.u)) {
+        final d = await cloud.rest('POST', '/rest/v1/rpc/my_plus_until', body: {});
+        if (d.$1 == 200 && d.$2 is String && mounted) {
+          setState(() => plusUntil = DateTime.tryParse(d.$2 as String)?.toLocal());
+        }
+      } else {
+        plusUntil = null;
+        if (accentIdx.value >= kPlusFrom) {
+          accentIdx.value = 0;
+          save();
+        }
+      }
+    }
   }
 
   Future<void> loadCounts(String u) async {
@@ -5285,6 +5337,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           it(Icons.chat_bubble_outline_rounded, 'المحادثات', goHome),
           it(Icons.palette_outlined, 'المظهر', themeSheet),
           it(Icons.language_rounded, 'اللغة', langSheet),
+          it(Icons.auto_awesome, 'ORX Plus', plusSheet),
+          it(Icons.notifications_active_outlined, 'أصوات الإشعارات', soundSheet),
           it(Icons.lock_outline_rounded, 'خصوصية الحساب', privacySheet),
           it(Icons.wifi_rounded, 'الدردشة عبر الإنترنت', chatSheet),
           it(Icons.block_rounded, 'الحسابات المحظورة', showBlocked),
@@ -5361,6 +5415,50 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         ),
       );
 
+  void plusSheet() => sheet('ORX Plus', (c, st) => [
+        fw.Text(isPlus ? 'اشتراكك في ORX Plus مفعّل' : 'ORX Plus: مميزات إضافية لحسابك',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        if (isPlus && plusUntil != null)
+          fw.Text('ينتهي في ${plusUntil!.year}-${plusUntil!.month.toString().padLeft(2, '0')}-${plusUntil!.day.toString().padLeft(2, '0')}'),
+        const SizedBox(height: 10),
+        const ListTile(leading: Icon(Icons.auto_awesome), title: Text('شارة ORX Plus بجانب اسمك')),
+        const ListTile(leading: Icon(Icons.trending_up_rounded), title: Text('أولوية لمنشوراتك في الاكتشاف (3 أيام من نشرها)')),
+        const ListTile(leading: Icon(Icons.palette_outlined), title: Text('ألوان حصرية للتطبيق')),
+        const SizedBox(height: 6),
+        if (!isPlus) fw.Text('للاشتراك تواصل معنا على: $kContactEmail'),
+      ]);
+
+  static const _notifCh = MethodChannel('orx/notif');
+
+  Future<void> openChannel(String id) async {
+    try {
+      final ok = await _notifCh.invokeMethod<bool>('openChannel', {'id': id});
+      if (ok != true && mounted) snack('تعذر فتح إعدادات الصوت');
+    } catch (_) {
+      if (mounted) snack('تعذر فتح إعدادات الصوت');
+    }
+  }
+
+  void soundSheet() => sheet('أصوات الإشعارات', (c, st) => [
+        const Text('لكل نوع إشعار قناة مستقلة بصوتها. اضغط على أي نوع لتغيير صوته أو اهتزازه من إعدادات أندرويد.'),
+        const SizedBox(height: 8),
+        ListTile(
+          leading: const Icon(Icons.chat_bubble_outline_rounded),
+          title: const Text('الرسائل (ORX Pulse)'),
+          onTap: () => openChannel('orx_messages_v1'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.person_add_alt_1_outlined),
+          title: const Text('طلبات المتابعة (ORX Request)'),
+          onTap: () => openChannel('orx_requests_v1'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.favorite_border_rounded),
+          title: const Text('التفاعلات والتعليقات (ORX Soft)'),
+          onTap: () => openChannel('orx_activity_v1'),
+        ),
+      ]);
+
   void themeSheet() => sheet('المظهر', (c, st) => [
         const Text('لون التطبيق'),
         const SizedBox(height: 12),
@@ -5368,6 +5466,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           for (var i = 0; i < accents.length; i++)
             GestureDetector(
               onTap: () {
+                if (i >= kPlusFrom && !isPlus) {
+                  snack('هذا اللون لمشتركي ORX Plus');
+                  return;
+                }
                 accentIdx.value = i;
                 save();
                 st(() {});
@@ -5375,7 +5477,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               child: CircleAvatar(
                 radius: 20,
                 backgroundColor: accents[i],
-                child: accentIdx.value == i ? const Icon(Icons.check, color: Colors.white) : null,
+                child: accentIdx.value == i
+                    ? const Icon(Icons.check, color: Colors.white)
+                    : (i >= kPlusFrom && !isPlus ? const Icon(Icons.lock_outline, size: 16, color: Colors.white) : null),
               ),
             ),
         ]),
@@ -5824,7 +5928,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final l = (exploreTab
         ? explore.where((p) => !blocked.contains(p.from)).toList()
         : posts.where((p) => p.kind == 'post' && !blocked.contains(p.from) && (p.from == me!.u || (feedTab == 2 ? (following.contains(p.from) && followers.contains(p.from)) : following.contains(p.from)))).toList())
-      ..sort((a, b) => b.at.compareTo(a.at));
+      ..sort((a, b) {
+        if (exploreTab) {
+          final pa = plusBoost(a), pb = plusBoost(b);
+          if (pa != pb) return pa ? -1 : 1;
+        }
+        return b.at.compareTo(a.at);
+      });
     final sug = contacts.values.where((p) => p.u != me!.u && !blocked.contains(p.u) && !following.contains(p.u)).toList();
     return RefreshIndicator(
       onRefresh: pullSocial,
