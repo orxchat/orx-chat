@@ -4647,26 +4647,49 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   // ---------- الإشعارات (FCM) ----------
+  final List<String> pushLog = [];
+  bool pushReported = false;
+
+  Future<void> pushReport() async {
+    if (pushReported || !mounted) return;
+    pushReported = true;
+    await showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('حالة الإشعارات'),
+        content: SingleChildScrollView(child: SelectableText(pushLog.join('\n'))),
+        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('تمام'))],
+      ),
+    );
+  }
+
   Future<void> initPush() async {
-    if (!fcmOn && me != null && netReady && !pushDone) {
-      if (mounted) snack('Firebase غير شغال: ${fcmErr.isEmpty ? "غير معروف" : fcmErr}');
+    if (me == null || !netReady || pushDone) return;
+    pushLog
+      ..clear()
+      ..add('Firebase شغال: $fcmOn ${fcmErr.isEmpty ? "" : fcmErr}');
+    if (!fcmOn) {
+      await pushReport();
       return;
     }
-    if (!fcmOn || me == null || !netReady || pushDone) return;
     try {
       final fm = FirebaseMessaging.instance;
       final perm = await fm.requestPermission();
+      pushLog.add('الإذن: ${perm.authorizationStatus.name}');
       if (perm.authorizationStatus == AuthorizationStatus.denied) {
-        if (mounted) snack('الإشعارات مرفوضة. فعّلها من إعدادات الموبايل ← التطبيقات');
+        await pushReport();
         return;
       }
       final tok = await fm.getToken();
+      pushLog.add('التوكن: ${tok == null ? "لا يوجد" : "${tok.substring(0, 12)}..."}');
       if (tok == null) {
-        if (mounted) snack('تعذر الحصول على توكن الإشعارات');
+        await pushReport();
         return;
       }
       pushDone = true;
-      await savePushToken(tok);
+      final code = await savePushToken(tok);
+      pushLog.add('حفظ التوكن في السيرفر: $code');
+      if (code < 200 || code >= 300) pushDone = false;
       pushSubs
         ..add(fm.onTokenRefresh.listen(savePushToken))
         ..add(FirebaseMessaging.onMessage.listen(onPushForeground))
@@ -4675,18 +4698,16 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       if (first != null) onPushOpen(first);
     } catch (e) {
       pushDone = false;
-      if (mounted) snack('خطأ في الإشعارات: $e');
+      pushLog.add('خطأ: $e');
     }
+    await pushReport();
   }
 
-  Future<void> savePushToken(String t) async {
+  Future<int> savePushToken(String t) async {
     pushToken = t;
-    if (!await cloud.ensure()) return;
+    if (!await cloud.ensure()) return -2;
     final r = await cloud.rest('POST', '/rest/v1/rpc/register_push_token', body: {'p_token': t});
-    if (r.$1 < 200 || r.$1 >= 300) {
-      pushDone = false;
-      if (mounted) snack('تعذر تفعيل الإشعارات (${r.$1})');
-    }
+    return r.$1;
   }
 
   Future<void> unregisterPush() async {
