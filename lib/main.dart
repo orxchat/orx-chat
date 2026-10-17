@@ -468,6 +468,7 @@ class PolicyPage extends StatelessWidget {
 }
 
 bool fcmOn = false;
+String fcmErr = '';
 
 @pragma('vm:entry-point')
 Future<void> orxBgHandler(RemoteMessage m) async {}
@@ -491,7 +492,9 @@ Future<void> main() async {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(orxBgHandler);
     fcmOn = true;
-  } catch (_) {}
+  } catch (e) {
+    fcmErr = '$e';
+  }
   runApp(const App());
 }
 
@@ -4645,6 +4648,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   // ---------- الإشعارات (FCM) ----------
   Future<void> initPush() async {
+    if (!fcmOn && me != null && netReady && !pushDone) {
+      if (mounted) snack('Firebase غير شغال: ${fcmErr.isEmpty ? "غير معروف" : fcmErr}');
+      return;
+    }
     if (!fcmOn || me == null || !netReady || pushDone) return;
     try {
       final fm = FirebaseMessaging.instance;
