@@ -32,6 +32,8 @@ jobs:
           fi
           python3 -c "import json;d=json.load(open('android/app/google-services.json'));print('Firebase package:',d['client'][0]['client_info']['android_client_info']['package_name'])"
           python3 patch_firebase.py
+      - name: Custom notification sounds
+        run: python3 patch_sound.py
       - run: |
           R=android/app/src/main/res
           cp ic48.png $R/mipmap-mdpi/ic_launcher.png
