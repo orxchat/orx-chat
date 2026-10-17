@@ -4649,9 +4649,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     try {
       final fm = FirebaseMessaging.instance;
       final perm = await fm.requestPermission();
-      if (perm.authorizationStatus == AuthorizationStatus.denied) return;
+      if (perm.authorizationStatus == AuthorizationStatus.denied) {
+        if (mounted) snack('الإشعارات مرفوضة. فعّلها من إعدادات الموبايل ← التطبيقات');
+        return;
+      }
       final tok = await fm.getToken();
-      if (tok == null) return;
+      if (tok == null) {
+        if (mounted) snack('تعذر الحصول على توكن الإشعارات');
+        return;
+      }
       pushDone = true;
       await savePushToken(tok);
       pushSubs
@@ -4660,15 +4666,20 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         ..add(FirebaseMessaging.onMessageOpenedApp.listen(onPushOpen));
       final first = await fm.getInitialMessage();
       if (first != null) onPushOpen(first);
-    } catch (_) {
+    } catch (e) {
       pushDone = false;
+      if (mounted) snack('خطأ في الإشعارات: $e');
     }
   }
 
   Future<void> savePushToken(String t) async {
     pushToken = t;
     if (!await cloud.ensure()) return;
-    await cloud.rest('POST', '/rest/v1/rpc/register_push_token', body: {'p_token': t});
+    final r = await cloud.rest('POST', '/rest/v1/rpc/register_push_token', body: {'p_token': t});
+    if (r.$1 < 200 || r.$1 >= 300) {
+      pushDone = false;
+      if (mounted) snack('تعذر تفعيل الإشعارات (${r.$1})');
+    }
   }
 
   Future<void> unregisterPush() async {
