@@ -100,6 +100,95 @@ const _en = <String, String>{
   'حسابي': 'Profile',
   'المظهر': 'Settings',
   'أصوات الإشعارات': 'Notification sounds',
+  'المجتمعات': 'Communities',
+  'مجتمعاتي': 'My communities',
+  'إنشاء مجتمع': 'Create community',
+  'اهتماماتي': 'My interests',
+  'ابحث عن مجتمع أو اهتمام': 'Search communities or interests',
+  'الكل': 'All',
+  'مقترحة لك': 'Suggested for you',
+  'عضو': 'members',
+  'انضمام': 'Join',
+  'طلب انضمام': 'Request to join',
+  'بانتظار الموافقة': 'Pending approval',
+  'بانتظار موافقة المشرف': 'Waiting for moderator approval',
+  'تعذر التحميل': 'Couldn\'t load',
+  'لم تنضم لأي مجتمع بعد': 'You haven\'t joined any community yet',
+  'لا توجد مجتمعات مطابقة': 'No matching communities',
+  'انضممت للمجتمع': 'You joined the community',
+  'تم إرسال طلب الانضمام': 'Join request sent',
+  'اسم المجتمع': 'Community name',
+  'الوصف': 'Description',
+  'الفئة': 'Category',
+  'الاهتمامات (حتى 5)': 'Interests (up to 5)',
+  'مجتمع خاص': 'Private community',
+  'الانضمام بموافقتك، والمنشورات للأعضاء فقط': 'Joining needs your approval; posts are for members only',
+  'قواعد المجتمع (اختياري)': 'Community rules (optional)',
+  'قواعد المجتمع': 'Community rules',
+  'اسم المجتمع من 3 إلى 40 حرفاً': 'Community name must be 3 to 40 characters',
+  'اختر اهتماماً واحداً على الأقل': 'Pick at least one interest',
+  'الحد الأقصى 5 اهتمامات': 'Maximum 5 interests',
+  'تعذر رفع الصورة': 'Couldn\'t upload the image',
+  'اختر من 3 إلى 5 اهتمامات': 'Pick 3 to 5 interests',
+  'نستخدمها لاقتراح مجتمعات تناسبك.': 'We use them to suggest communities for you.',
+  'تم حفظ اهتماماتك': 'Your interests were saved',
+  'المجتمع': 'Community',
+  'المجتمع غير موجود': 'Community not found',
+  'إدارة المجتمع': 'Manage community',
+  'إبلاغ عن المجتمع': 'Report community',
+  'مغادرة المجتمع': 'Leave community',
+  'مغادرة المجتمع؟': 'Leave this community?',
+  'مغادرة': 'Leave',
+  'حذف': 'Delete',
+  'إبلاغ': 'Report',
+  'اكتب منشوراً للمجتمع...': 'Write a post for the community...',
+  'لا توجد منشورات بعد': 'No posts yet',
+  'هذا مجتمع خاص. انضم ليظهر لك محتواه.': 'This is a private community. Join to see its content.',
+  'لا توجد تعليقات بعد': 'No comments yet',
+  'اكتب تعليقاً...': 'Write a comment...',
+  'انضم للمجتمع لتتمكن من التعليق': 'Join the community to comment',
+  'الأعضاء': 'Members',
+  'التعديل': 'Edit',
+  'لا توجد طلبات انضمام': 'No join requests',
+  'تم الرفض': 'Rejected',
+  'تمت الموافقة': 'Approved',
+  'المالك': 'Owner',
+  'مشرف': 'Moderator',
+  'عضو عادي': 'Member',
+  'ترقية إلى مشرف': 'Promote to moderator',
+  'إلغاء الإشراف': 'Remove moderator role',
+  'إزالة من المجتمع': 'Remove from community',
+  'تمت الإزالة': 'Removed',
+  'تم التحديث': 'Updated',
+  'تم الحفظ': 'Saved',
+  'حذف المجتمع': 'Delete community',
+  'حذف المجتمع نهائياً؟': 'Delete this community permanently?',
+  'سيتم حذف كل المنشورات والتعليقات والأعضاء ولا يمكن التراجع.': 'All posts, comments and members will be deleted. This cannot be undone.',
+  'سبب الإبلاغ': 'Reason for report',
+  'محتوى مسيء أو كراهية': 'Abusive or hateful content',
+  'تحرش أو تنمر': 'Harassment or bullying',
+  'محتوى مزعج أو إعلانات': 'Spam or ads',
+  'معلومات مضللة': 'Misinformation',
+  'وصلت للحد الأقصى: 5 مجتمعات كمالك': 'Limit reached: 5 communities as owner',
+  'اسم المجتمع مستخدم بالفعل': 'That community name is already taken',
+  'ليست لديك صلاحية لهذا الإجراء': 'You don\'t have permission for this action',
+  'حدث خطأ، حاول مرة أخرى': 'Something went wrong, try again',
+  'مالك المجتمع لا يمكنه المغادرة، يمكنك حذف المجتمع بدلاً من ذلك': 'The owner cannot leave; you can delete the community instead',
+  'المجتمعات تحتاج اتصالاً بالإنترنت وحساباً مسجّلاً': 'Communities need an internet connection and a signed-in account',
+  'رياضة وكرة القدم': 'Sports & football',
+  'ألعاب': 'Gaming',
+  'تقنية': 'Technology',
+  'تصوير': 'Photography',
+  'موسيقى': 'Music',
+  'لياقة': 'Fitness',
+  'أزياء': 'Fashion',
+  'ترفيه': 'Entertainment',
+  'كرة القدم': 'Football',
+  'رياضة': 'Sports',
+  'ذكاء اصطناعي': 'AI',
+  'أفلام': 'Movies',
+  'فن': 'Art',
+  'سفر': 'Travel',
   'هذا اللون لمشتركي ORX Plus': 'This color is for ORX Plus subscribers',
   'شارة ORX Plus بجانب اسمك': 'ORX Plus badge next to your name',
   'أولوية لمنشوراتك في الاكتشاف (3 أيام من نشرها)': 'Priority for your posts in Explore (for 3 days after posting)',
@@ -5337,6 +5426,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           it(Icons.chat_bubble_outline_rounded, 'المحادثات', goHome),
           it(Icons.palette_outlined, 'المظهر', themeSheet),
           it(Icons.language_rounded, 'اللغة', langSheet),
+          it(Icons.groups_2_outlined, 'المجتمعات', openCommunities),
           it(Icons.auto_awesome, 'ORX Plus', plusSheet),
           it(Icons.notifications_active_outlined, 'أصوات الإشعارات', soundSheet),
           it(Icons.lock_outline_rounded, 'خصوصية الحساب', privacySheet),
@@ -5414,6 +5504,20 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ),
         ),
       );
+
+  Future<void> openCommunities() async {
+    if (me == null || !netReady || !await cloud.ensure()) {
+      snack('المجتمعات تحتاج اتصالاً بالإنترنت وحساباً مسجّلاً');
+      return;
+    }
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CommunitiesPage(cloud: cloud, meU: me!.u, blocked: blocked, onSnack: snack, onBlock: blockUser),
+      ),
+    );
+  }
 
   void plusSheet() => sheet('ORX Plus', (c, st) => [
         fw.Text(isPlus ? 'اشتراكك في ORX Plus مفعّل' : 'ORX Plus: مميزات إضافية لحسابك',
@@ -6582,4 +6686,1523 @@ class _CoverEditorState extends State<CoverEditor> {
       ),
     );
   }
+}
+
+// =====================================================================
+// ORX Communities
+// =====================================================================
+const kCommCats = <String, String>{
+  'sports': 'رياضة وكرة القدم',
+  'gaming': 'ألعاب',
+  'tech': 'تقنية',
+  'photography': 'تصوير',
+  'music': 'موسيقى',
+  'fitness': 'لياقة',
+  'fashion': 'أزياء',
+  'entertainment': 'ترفيه',
+};
+const kCommTags = <String, String>{
+  'football': 'كرة القدم',
+  'sports': 'رياضة',
+  'gaming': 'ألعاب',
+  'tech': 'تقنية',
+  'ai': 'ذكاء اصطناعي',
+  'photography': 'تصوير',
+  'music': 'موسيقى',
+  'fitness': 'لياقة',
+  'fashion': 'أزياء',
+  'movies': 'أفلام',
+  'art': 'فن',
+  'travel': 'سفر',
+};
+
+class Comm {
+  final String id, name, category;
+  final String? description, avatar, rules;
+  final List<String> interests;
+  final bool isPrivate;
+  int members;
+  String? myStatus, myRole;
+  Comm({
+    required this.id,
+    required this.name,
+    required this.category,
+    this.description,
+    this.avatar,
+    this.rules,
+    this.interests = const [],
+    this.isPrivate = false,
+    this.members = 0,
+    this.myStatus,
+    this.myRole,
+  });
+  factory Comm.fromJson(Map j) => Comm(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        category: (j['category'] ?? 'sports') as String,
+        description: j['description'] as String?,
+        avatar: j['avatar'] as String?,
+        rules: j['rules'] as String?,
+        interests: [for (final x in (j['interests'] as List? ?? const [])) x.toString()],
+        isPrivate: j['is_private'] == true,
+        members: (j['member_count'] as num?)?.toInt() ?? 0,
+        myStatus: j['my_status'] as String?,
+        myRole: j['my_role'] as String?,
+      );
+  bool get isMember => myStatus == 'active';
+  bool get isPending => myStatus == 'pending';
+  bool get isMod => isMember && (myRole == 'owner' || myRole == 'moderator');
+  bool get isOwner => isMember && myRole == 'owner';
+  bool get canView => !isPrivate || isMember;
+}
+
+String _cErr(dynamic b) {
+  final s = b is Map ? '${b['message'] ?? ''} ${b['code'] ?? ''} ${b['details'] ?? ''}' : '$b';
+  if (s.contains('limit_reached')) return 'وصلت للحد الأقصى: 5 مجتمعات كمالك';
+  if (s.contains('communities_name_uq') || s.contains('23505') || s.contains('duplicate')) return 'اسم المجتمع مستخدم بالفعل';
+  if (s.contains('owner_cannot_leave')) return 'مالك المجتمع لا يمكنه المغادرة، يمكنك حذف المجتمع بدلاً من ذلك';
+  if (s.contains('forbidden') || s.contains('row-level security') || s.contains('42501')) return 'ليست لديك صلاحية لهذا الإجراء';
+  return 'حدث خطأ، حاول مرة أخرى';
+}
+
+Future<String?> _pickImagePath(double maxW) async {
+  final f = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: maxW, imageQuality: 75);
+  return f?.path;
+}
+
+Future<String?> _uploadImage(Cloud cloud, String path) async {
+  if (!await cloud.ensure()) return null;
+  final p = 'c/${cloud.uid}_${DateTime.now().microsecondsSinceEpoch}.jpg';
+  final ok = await cloud.upload(p, await File(path).readAsBytes(), 'image/jpeg');
+  return ok ? p : null;
+}
+
+class _CAvatar extends StatelessWidget {
+  final String? path;
+  final String name;
+  final double r;
+  const _CAvatar(this.path, this.name, {this.r = 24});
+  @override
+  Widget build(BuildContext c) {
+    final cs = Theme.of(c).colorScheme;
+    return CircleAvatar(
+      radius: r,
+      backgroundColor: cs.primary.withAlpha(46),
+      backgroundImage: path == null ? null : NetworkImage('$sbUrl/storage/v1/object/public/orx/$path'),
+      child: path == null
+          ? fw.Text(name.isEmpty ? '?' : String.fromCharCode(name.runes.first).toUpperCase(),
+              style: TextStyle(color: cs.primary, fontWeight: FontWeight.w800, fontSize: r * .8))
+          : null,
+    );
+  }
+}
+
+Future<void> _report(BuildContext context, Cloud cloud, String meU, String cid,
+    {required String type, required String target, required String id, required void Function(String) onSnack}) async {
+  const reasons = ['محتوى مسيء أو كراهية', 'تحرش أو تنمر', 'محتوى مزعج أو إعلانات', 'معلومات مضللة', 'سبب آخر'];
+  final r = await showDialog<String>(
+    context: context,
+    builder: (c) => SimpleDialog(
+      title: const Text('سبب الإبلاغ'),
+      children: [
+        for (final x in reasons) SimpleDialogOption(onPressed: () => Navigator.pop(c, x), child: Text(x)),
+      ],
+    ),
+  );
+  if (r == null) return;
+  final res = await cloud.rest('POST', '/rest/v1/reports',
+      headers: {'Prefer': 'return=minimal'},
+      body: {'reporter': meU, 'target': target, 'post_id': id, 'reason': r, 'details': 'community:$cid:$type'});
+  onSnack(res.$1 >= 200 && res.$1 < 300 ? 'تم إرسال البلاغ، شكراً لك' : 'تعذر إرسال البلاغ');
+}
+
+Future<bool?> showInterestsSheet(BuildContext context, Cloud cloud, void Function(String) onSnack) async {
+  final r = await cloud.rest('GET', '/rest/v1/user_interests?select=interests&limit=1');
+  final sel = <String>{};
+  if (r.$1 == 200 && r.$2 is List && (r.$2 as List).isNotEmpty) {
+    for (final x in ((r.$2 as List).first as Map)['interests'] as List) {
+      sel.add(x.toString());
+    }
+  }
+  if (!context.mounted) return null;
+  var busy = false;
+  return showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    builder: (c) => StatefulBuilder(
+      builder: (c, st) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('اختر من 3 إلى 5 اهتمامات', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 4),
+            const Text('نستخدمها لاقتراح مجتمعات تناسبك.'),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final e in kCommTags.entries)
+                  FilterChip(
+                    label: Text(e.value),
+                    selected: sel.contains(e.key),
+                    onSelected: (v) {
+                      if (v && sel.length >= 5) {
+                        onSnack('الحد الأقصى 5 اهتمامات');
+                        return;
+                      }
+                      st(() {
+                        if (v) {
+                          sel.add(e.key);
+                        } else {
+                          sel.remove(e.key);
+                        }
+                      });
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: busy || sel.length < 3
+                    ? null
+                    : () async {
+                        st(() => busy = true);
+                        final res = await cloud.rest('POST', '/rest/v1/user_interests?on_conflict=uid',
+                            headers: {'Prefer': 'resolution=merge-duplicates,return=minimal'},
+                            body: {'interests': sel.toList(), 'updated_at': DateTime.now().toUtc().toIso8601String()});
+                        if (res.$1 >= 200 && res.$1 < 300) {
+                          if (c.mounted) Navigator.pop(c, true);
+                        } else {
+                          st(() => busy = false);
+                          onSnack(_cErr(res.$2));
+                        }
+                      },
+                child: const Text('حفظ'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// ---------------------------- discovery ----------------------------
+class CommunitiesPage extends StatefulWidget {
+  final Cloud cloud;
+  final String meU;
+  final Set<String> blocked;
+  final void Function(String) onSnack, onBlock;
+  const CommunitiesPage(
+      {super.key, required this.cloud, required this.meU, required this.blocked, required this.onSnack, required this.onBlock});
+  @override
+  State<CommunitiesPage> createState() => _CommunitiesPageState();
+}
+
+class _CommunitiesPageState extends State<CommunitiesPage> {
+  final discoverKey = GlobalKey<_CommFeedState>();
+  final mineKey = GlobalKey<_CommFeedState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => checkInterests());
+  }
+
+  Future<void> checkInterests() async {
+    final r = await widget.cloud.rest('GET', '/rest/v1/user_interests?select=interests&limit=1');
+    if (!mounted) return;
+    if (r.$1 == 200 && r.$2 is List && (r.$2 as List).isEmpty) {
+      final saved = await showInterestsSheet(context, widget.cloud, widget.onSnack);
+      if (saved == true) discoverKey.currentState?.reload();
+    }
+  }
+
+  Future<void> editInterests() async {
+    final saved = await showInterestsSheet(context, widget.cloud, widget.onSnack);
+    if (saved == true) {
+      widget.onSnack('تم حفظ اهتماماتك');
+      discoverKey.currentState?.reload();
+    }
+  }
+
+  Future<void> create() async {
+    final id = await Navigator.push<String>(
+        context, MaterialPageRoute(builder: (_) => CreateCommunityPage(cloud: widget.cloud, onSnack: widget.onSnack)));
+    if (id != null && mounted) {
+      discoverKey.currentState?.reload();
+      mineKey.currentState?.reload();
+      open(id);
+    }
+  }
+
+  Future<void> open(String id) async {
+    await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => CommunityPage(
+                cloud: widget.cloud,
+                meU: widget.meU,
+                cid: id,
+                blocked: widget.blocked,
+                onSnack: widget.onSnack,
+                onBlock: widget.onBlock)));
+    discoverKey.currentState?.reload();
+    mineKey.currentState?.reload();
+  }
+
+  @override
+  Widget build(BuildContext c) => DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('المجتمعات'),
+            actions: [IconButton(tooltip: T('اهتماماتي'), icon: const Icon(Icons.tune_rounded), onPressed: editInterests)],
+            bottom: const TabBar(tabs: [Tab(child: Text('اكتشف')), Tab(child: Text('مجتمعاتي'))]),
+          ),
+          body: TabBarView(children: [
+            _CommFeed(key: discoverKey, cloud: widget.cloud, mine: false, onOpen: open, onSnack: widget.onSnack, onCreate: create),
+            _CommFeed(key: mineKey, cloud: widget.cloud, mine: true, onOpen: open, onSnack: widget.onSnack, onCreate: create),
+          ]),
+          floatingActionButton: FloatingActionButton.extended(
+              onPressed: create, icon: const Icon(Icons.add), label: const Text('إنشاء مجتمع')),
+        ),
+      );
+}
+
+class _CommFeed extends StatefulWidget {
+  final Cloud cloud;
+  final bool mine;
+  final void Function(String) onOpen, onSnack;
+  final VoidCallback onCreate;
+  const _CommFeed(
+      {super.key, required this.cloud, required this.mine, required this.onOpen, required this.onSnack, required this.onCreate});
+  @override
+  State<_CommFeed> createState() => _CommFeedState();
+}
+
+class _CommFeedState extends State<_CommFeed> with AutomaticKeepAliveClientMixin {
+  final items = <Comm>[];
+  final sc = ScrollController();
+  final qc = TextEditingController();
+  bool loading = false, error = false, hasMore = true;
+  int offset = 0, gen = 0;
+  String? cat;
+  String q = '';
+  Timer? deb;
+
+  @override
+  bool get wantKeepAlive => true;
+  bool get rec => !widget.mine && q.isEmpty && cat == null;
+
+  @override
+  void initState() {
+    super.initState();
+    sc.addListener(() {
+      if (sc.hasClients && sc.position.pixels > sc.position.maxScrollExtent - 300) load();
+    });
+    load(reset: true);
+  }
+
+  @override
+  void dispose() {
+    deb?.cancel();
+    sc.dispose();
+    qc.dispose();
+    super.dispose();
+  }
+
+  void reload() => load(reset: true);
+
+  Future<void> load({bool reset = false}) async {
+    if (reset) {
+      gen++;
+      items.clear();
+      offset = 0;
+      hasMore = true;
+      loading = false;
+      error = false;
+    }
+    if (loading || !hasMore) return;
+    final my = gen;
+    final asRec = rec;
+    setState(() {
+      loading = true;
+      error = false;
+    });
+    final r = await widget.cloud.rest('POST',
+        asRec ? '/rest/v1/rpc/recommended_communities' : '/rest/v1/rpc/communities_page',
+        body: asRec
+            ? {'p_limit': 20, 'p_offset': offset}
+            : {'p_q': q.isEmpty ? null : q, 'p_category': cat, 'p_joined': widget.mine, 'p_limit': 20, 'p_offset': offset});
+    if (!mounted || my != gen) return;
+    if (r.$1 == 200 && r.$2 is List) {
+      final l = [for (final e in r.$2 as List) Comm.fromJson(Map.from(e as Map))];
+      setState(() {
+        items.addAll(l);
+        offset += l.length;
+        hasMore = l.length >= 20;
+        loading = false;
+      });
+    } else {
+      setState(() {
+        loading = false;
+        error = true;
+      });
+    }
+  }
+
+  Future<void> join(Comm cm) async {
+    final r = await widget.cloud.rest('POST', '/rest/v1/rpc/join_community', body: {'p_c': cm.id});
+    if (!mounted) return;
+    if (r.$1 == 200 && r.$2 is String) {
+      setState(() {
+        cm.myStatus = r.$2 as String;
+        if (cm.myStatus == 'active') {
+          cm.myRole = 'member';
+          cm.members++;
+        }
+      });
+      widget.onSnack(cm.myStatus == 'active' ? 'انضممت للمجتمع' : 'تم إرسال طلب الانضمام');
+    } else {
+      widget.onSnack(_cErr(r.$2));
+    }
+  }
+
+  Widget joinBtn(Comm cm) {
+    if (cm.isMember) return Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary);
+    if (cm.isPending) return const Text('بانتظار الموافقة', style: TextStyle(fontSize: 11));
+    return FilledButton.tonal(
+      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12), minimumSize: const Size(0, 34)),
+      onPressed: () => join(cm),
+      child: Text(cm.isPrivate ? 'طلب انضمام' : 'انضمام'),
+    );
+  }
+
+  Widget tile(Comm cm) => Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        child: ListTile(
+          onTap: () => widget.onOpen(cm.id),
+          leading: _CAvatar(cm.avatar, cm.name),
+          isThreeLine: (cm.description ?? '').isNotEmpty,
+          title: Row(children: [
+            Flexible(
+                child: fw.Text(cm.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800))),
+            if (cm.isPrivate) const Padding(padding: EdgeInsetsDirectional.only(start: 4), child: Icon(Icons.lock_outline, size: 14)),
+          ]),
+          subtitle: fw.Text(
+            '${T(kCommCats[cm.category] ?? cm.category)} • ${cm.members} ${T('عضو')}${(cm.description ?? '').isEmpty ? '' : '\n${cm.description}'}',
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: joinBtn(cm),
+        ),
+      );
+
+  Widget retry() => Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.cloud_off_rounded, size: 40),
+          const SizedBox(height: 8),
+          const Text('تعذر التحميل'),
+          const SizedBox(height: 8),
+          OutlinedButton(onPressed: () => load(reset: true), child: const Text('إعادة المحاولة')),
+        ]),
+      );
+
+  Widget empty() => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.groups_2_outlined, size: 48),
+            const SizedBox(height: 8),
+            Text(widget.mine ? 'لم تنضم لأي مجتمع بعد' : 'لا توجد مجتمعات مطابقة', textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: widget.onCreate, child: const Text('إنشاء مجتمع')),
+          ]),
+        ),
+      );
+
+  Widget body() {
+    if (items.isEmpty && loading) return const Center(child: CircularProgressIndicator());
+    if (items.isEmpty && error) return retry();
+    if (items.isEmpty) return empty();
+    final head = rec ? 1 : 0;
+    return RefreshIndicator(
+      onRefresh: () async => load(reset: true),
+      child: ListView.builder(
+        controller: sc,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 90),
+        itemCount: items.length + head + 1,
+        itemBuilder: (c, i) {
+          if (head == 1 && i == 0) {
+            return const Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 2), child: Text('مقترحة لك', style: TextStyle(fontWeight: FontWeight.w800)));
+          }
+          final k = i - head;
+          if (k < items.length) return tile(items[k]);
+          if (loading) return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()));
+          if (error) {
+            return TextButton(onPressed: () => load(), child: const Text('إعادة المحاولة'));
+          }
+          return const SizedBox(height: 8);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return Column(children: [
+      if (!widget.mine) ...[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+          child: TextField(
+            controller: qc,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: T('ابحث عن مجتمع أو اهتمام'),
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            onChanged: (v) {
+              deb?.cancel();
+              deb = Timer(const Duration(milliseconds: 450), () {
+                q = v.trim();
+                load(reset: true);
+              });
+            },
+          ),
+        ),
+        SizedBox(
+          height: 46,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            children: [
+              for (final e in <String?, String>{null: 'الكل', ...kCommCats}.entries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
+                  child: ChoiceChip(
+                    label: Text(e.value),
+                    selected: cat == e.key,
+                    onSelected: (_) {
+                      cat = e.key;
+                      load(reset: true);
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+      Expanded(child: body()),
+    ]);
+  }
+}
+
+// ---------------------------- create ----------------------------
+class CreateCommunityPage extends StatefulWidget {
+  final Cloud cloud;
+  final void Function(String) onSnack;
+  const CreateCommunityPage({super.key, required this.cloud, required this.onSnack});
+  @override
+  State<CreateCommunityPage> createState() => _CreateCommunityPageState();
+}
+
+class _CreateCommunityPageState extends State<CreateCommunityPage> {
+  final nc = TextEditingController(), dc = TextEditingController(), rc = TextEditingController();
+  String cat = 'sports';
+  final tags = <String>{};
+  bool priv = false, busy = false;
+  String? img;
+
+  @override
+  void dispose() {
+    nc.dispose();
+    dc.dispose();
+    rc.dispose();
+    super.dispose();
+  }
+
+  Future<void> submit() async {
+    final name = nc.text.trim();
+    if (name.length < 3 || name.length > 40) {
+      widget.onSnack('اسم المجتمع من 3 إلى 40 حرفاً');
+      return;
+    }
+    if (tags.isEmpty) {
+      widget.onSnack('اختر اهتماماً واحداً على الأقل');
+      return;
+    }
+    setState(() => busy = true);
+    String? av;
+    if (img != null) {
+      av = await _uploadImage(widget.cloud, img!);
+      if (av == null) {
+        if (mounted) setState(() => busy = false);
+        widget.onSnack('تعذر رفع الصورة');
+        return;
+      }
+    }
+    final r = await widget.cloud.rest('POST', '/rest/v1/rpc/create_community', body: {
+      'p_name': name,
+      'p_description': dc.text.trim(),
+      'p_category': cat,
+      'p_interests': tags.toList(),
+      'p_private': priv,
+      'p_avatar': av,
+      'p_rules': rc.text.trim(),
+    });
+    if (!mounted) return;
+    if (r.$1 == 200 && r.$2 is String) {
+      Navigator.pop(context, r.$2 as String);
+    } else {
+      setState(() => busy = false);
+      widget.onSnack(_cErr(r.$2));
+    }
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+        appBar: AppBar(title: const Text('إنشاء مجتمع')),
+        body: ListView(padding: const EdgeInsets.all(16), children: [
+          Center(
+            child: GestureDetector(
+              onTap: busy
+                  ? null
+                  : () async {
+                      final p = await _pickImagePath(512);
+                      if (p != null && mounted) setState(() => img = p);
+                    },
+              child: Stack(alignment: Alignment.bottomRight, children: [
+                CircleAvatar(
+                  radius: 42,
+                  backgroundColor: Theme.of(c).colorScheme.primary.withAlpha(46),
+                  backgroundImage: img == null ? null : FileImage(File(img!)),
+                  child: img == null ? const Icon(Icons.groups_2_outlined, size: 36) : null,
+                ),
+                CircleAvatar(
+                    radius: 14, backgroundColor: Theme.of(c).colorScheme.primary, child: const Icon(Icons.camera_alt, size: 15, color: Colors.white)),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+              controller: nc,
+              maxLength: 40,
+              decoration: InputDecoration(labelText: T('اسم المجتمع'), border: const OutlineInputBorder())),
+          const SizedBox(height: 8),
+          TextField(
+              controller: dc,
+              maxLength: 300,
+              maxLines: 3,
+              decoration: InputDecoration(labelText: T('الوصف'), border: const OutlineInputBorder())),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: cat,
+            decoration: InputDecoration(labelText: T('الفئة'), border: const OutlineInputBorder()),
+            items: [for (final e in kCommCats.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+            onChanged: (v) => setState(() => cat = v ?? cat),
+          ),
+          const SizedBox(height: 14),
+          const Text('الاهتمامات (حتى 5)', style: TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final e in kCommTags.entries)
+              FilterChip(
+                label: Text(e.value),
+                selected: tags.contains(e.key),
+                onSelected: (v) {
+                  if (v && tags.length >= 5) {
+                    widget.onSnack('الحد الأقصى 5 اهتمامات');
+                    return;
+                  }
+                  setState(() => v ? tags.add(e.key) : tags.remove(e.key));
+                },
+              ),
+          ]),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: priv,
+            onChanged: (v) => setState(() => priv = v),
+            title: const Text('مجتمع خاص'),
+            subtitle: const Text('الانضمام بموافقتك، والمنشورات للأعضاء فقط'),
+          ),
+          TextField(
+              controller: rc,
+              maxLength: 600,
+              maxLines: 4,
+              decoration: InputDecoration(labelText: T('قواعد المجتمع (اختياري)'), border: const OutlineInputBorder())),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: busy ? null : submit,
+            child: busy
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('إنشاء'),
+          ),
+        ]),
+      );
+}
+
+// ---------------------------- community details ----------------------------
+class CommunityPage extends StatefulWidget {
+  final Cloud cloud;
+  final String meU, cid;
+  final Set<String> blocked;
+  final void Function(String) onSnack, onBlock;
+  const CommunityPage(
+      {super.key,
+      required this.cloud,
+      required this.meU,
+      required this.cid,
+      required this.blocked,
+      required this.onSnack,
+      required this.onBlock});
+  @override
+  State<CommunityPage> createState() => _CommunityPageState();
+}
+
+class _CommunityPageState extends State<CommunityPage> {
+  Comm? cm;
+  bool loadingC = true, errC = false, busyJoin = false;
+  final posts = <Map<String, dynamic>>[];
+  final sc = ScrollController();
+  bool loadingP = false, errP = false, hasMore = true;
+  int offset = 0;
+  final rx = <String, Set<String>>{};
+  final cmt = <String, int>{};
+
+  @override
+  void initState() {
+    super.initState();
+    sc.addListener(() {
+      if (sc.hasClients && sc.position.pixels > sc.position.maxScrollExtent - 300) loadPosts();
+    });
+    loadCommunity();
+  }
+
+  @override
+  void dispose() {
+    sc.dispose();
+    super.dispose();
+  }
+
+  Future<void> loadCommunity() async {
+    setState(() {
+      loadingC = true;
+      errC = false;
+    });
+    final r = await widget.cloud.rest('POST', '/rest/v1/rpc/community_get', body: {'p_c': widget.cid});
+    if (!mounted) return;
+    if (r.$1 == 200 && r.$2 is List && (r.$2 as List).isNotEmpty) {
+      setState(() {
+        cm = Comm.fromJson(Map.from((r.$2 as List).first as Map));
+        loadingC = false;
+      });
+      if (cm!.canView) {
+        loadPosts(reset: true);
+      } else {
+        setState(() => posts.clear());
+      }
+    } else if (r.$1 == 200) {
+      widget.onSnack('المجتمع غير موجود');
+      Navigator.pop(context);
+    } else {
+      setState(() {
+        loadingC = false;
+        errC = true;
+      });
+    }
+  }
+
+  Future<void> loadPosts({bool reset = false}) async {
+    if (reset) {
+      posts.clear();
+      offset = 0;
+      hasMore = true;
+      loadingP = false;
+      errP = false;
+    }
+    if (loadingP || !hasMore || cm == null || !cm!.canView) return;
+    setState(() {
+      loadingP = true;
+      errP = false;
+    });
+    final r = await widget.cloud.rest('GET',
+        '/rest/v1/community_posts?community_id=eq.${widget.cid}&order=created_at.desc&limit=15&offset=$offset&select=*');
+    if (!mounted) return;
+    if (r.$1 == 200 && r.$2 is List) {
+      final l = [for (final e in r.$2 as List) Map<String, dynamic>.from(e as Map)];
+      offset += l.length;
+      hasMore = l.length >= 15;
+      posts.addAll(l.where((p) => !widget.blocked.contains(p['author'])));
+      setState(() => loadingP = false);
+      loadCounts(l);
+    } else {
+      setState(() {
+        loadingP = false;
+        errP = true;
+      });
+    }
+  }
+
+  Future<void> loadCounts(List<Map<String, dynamic>> l) async {
+    if (l.isEmpty) return;
+    final ids = l.map((p) => p['id']).join(',');
+    final a = await widget.cloud.rest('GET', '/rest/v1/community_reactions?post_id=in.($ids)&select=post_id,u&limit=5000');
+    final b = await widget.cloud.rest('GET', '/rest/v1/community_comments?post_id=in.($ids)&select=post_id&limit=5000');
+    if (!mounted) return;
+    setState(() {
+      if (a.$1 == 200 && a.$2 is List) {
+        for (final p in l) {
+          rx[p['id'] as String] = {};
+        }
+        for (final e in a.$2 as List) {
+          rx[e['post_id'] as String]?.add(e['u'] as String);
+        }
+      }
+      if (b.$1 == 200 && b.$2 is List) {
+        for (final p in l) {
+          cmt[p['id'] as String] = 0;
+        }
+        for (final e in b.$2 as List) {
+          final k = e['post_id'] as String;
+          cmt[k] = (cmt[k] ?? 0) + 1;
+        }
+      }
+    });
+  }
+
+  Future<void> join() async {
+    setState(() => busyJoin = true);
+    final r = await widget.cloud.rest('POST', '/rest/v1/rpc/join_community', body: {'p_c': widget.cid});
+    if (!mounted) return;
+    setState(() => busyJoin = false);
+    if (r.$1 == 200) {
+      widget.onSnack(r.$2 == 'active' ? 'انضممت للمجتمع' : 'تم إرسال طلب الانضمام');
+      loadCommunity();
+    } else {
+      widget.onSnack(_cErr(r.$2));
+    }
+  }
+
+  Future<void> leave() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('مغادرة المجتمع؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('مغادرة')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final r = await widget.cloud.rest('POST', '/rest/v1/rpc/leave_community', body: {'p_c': widget.cid});
+    if (!mounted) return;
+    if (r.$1 >= 200 && r.$1 < 300) {
+      loadCommunity();
+    } else {
+      widget.onSnack(_cErr(r.$2));
+    }
+  }
+
+  Future<void> manage() async {
+    final res = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(
+            builder: (_) => ManageCommunityPage(cloud: widget.cloud, meU: widget.meU, cm: cm!, onSnack: widget.onSnack)));
+    if (!mounted) return;
+    if (res == 'deleted') {
+      Navigator.pop(context);
+    } else {
+      loadCommunity();
+    }
+  }
+
+  Future<void> toggle(Map<String, dynamic> p) async {
+    final id = p['id'] as String;
+    final set = rx.putIfAbsent(id, () => {});
+    final had = set.contains(widget.meU);
+    setState(() => had ? set.remove(widget.meU) : set.add(widget.meU));
+    final r = had
+        ? await widget.cloud.rest('DELETE', '/rest/v1/community_reactions?post_id=eq.$id&uid=eq.${widget.cloud.uid}')
+        : await widget.cloud.rest('POST', '/rest/v1/community_reactions',
+            headers: {'Prefer': 'return=minimal'}, body: {'post_id': id, 'community_id': widget.cid, 'u': widget.meU});
+    if (r.$1 < 200 || r.$1 >= 300) {
+      if (!mounted) return;
+      setState(() => had ? set.add(widget.meU) : set.remove(widget.meU));
+      widget.onSnack(_cErr(r.$2));
+    }
+  }
+
+  Future<void> postAction(String v, Map<String, dynamic> p) async {
+    final id = p['id'] as String;
+    final au = p['author'] as String;
+    if (v == 'del') {
+      final r = await widget.cloud.rest('DELETE', '/rest/v1/community_posts?id=eq.$id');
+      if (!mounted) return;
+      if (r.$1 >= 200 && r.$1 < 300) {
+        setState(() => posts.removeWhere((x) => x['id'] == id));
+      } else {
+        widget.onSnack(_cErr(r.$2));
+      }
+    } else if (v == 'rep') {
+      await _report(context, widget.cloud, widget.meU, widget.cid, type: 'post', target: au, id: id, onSnack: widget.onSnack);
+    } else if (v == 'blk') {
+      widget.onBlock(au);
+      if (mounted) setState(() => posts.removeWhere((x) => x['author'] == au));
+    }
+  }
+
+  void openComments(Map<String, dynamic> p) {
+    final id = p['id'] as String;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => _CommentsSheet(
+        cloud: widget.cloud,
+        meU: widget.meU,
+        cid: widget.cid,
+        postId: id,
+        canComment: cm?.isMember ?? false,
+        isMod: cm?.isMod ?? false,
+        blocked: widget.blocked,
+        onSnack: widget.onSnack,
+        onBlock: widget.onBlock,
+        onCount: (n) {
+          if (mounted) setState(() => cmt[id] = n);
+        },
+      ),
+    );
+  }
+
+  Future<void> newPost() async {
+    final t = TextEditingController();
+    String? img;
+    var busy = false;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => StatefulBuilder(
+        builder: (c, st) => Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(c).viewInsets.bottom),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            TextField(
+              controller: t,
+              minLines: 2,
+              maxLines: 6,
+              maxLength: 2000,
+              decoration: InputDecoration(hintText: T('اكتب منشوراً للمجتمع...'), border: const OutlineInputBorder()),
+            ),
+            if (img != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Stack(alignment: Alignment.topRight, children: [
+                  ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(File(img!), height: 140, width: double.infinity, fit: BoxFit.cover)),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => st(() => img = null)),
+                ]),
+              ),
+            Row(children: [
+              IconButton(
+                icon: const Icon(Icons.add_photo_alternate_outlined),
+                onPressed: busy
+                    ? null
+                    : () async {
+                        final p = await _pickImagePath(1080);
+                        if (p != null) st(() => img = p);
+                      },
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: busy
+                    ? null
+                    : () async {
+                        final body = t.text.trim();
+                        if (body.isEmpty && img == null) return;
+                        st(() => busy = true);
+                        String? media;
+                        if (img != null) {
+                          media = await _uploadImage(widget.cloud, img!);
+                          if (media == null) {
+                            st(() => busy = false);
+                            widget.onSnack('تعذر رفع الصورة');
+                            return;
+                          }
+                        }
+                        final id = '${widget.meU}${DateTime.now().microsecondsSinceEpoch}';
+                        final r = await widget.cloud.rest('POST', '/rest/v1/community_posts',
+                            headers: {'Prefer': 'return=minimal'},
+                            body: {'id': id, 'community_id': widget.cid, 'author': widget.meU, 'body': body.isEmpty ? null : body, 'media': media});
+                        if (r.$1 >= 200 && r.$1 < 300) {
+                          if (c.mounted) Navigator.pop(c);
+                          if (mounted) loadPosts(reset: true);
+                        } else {
+                          st(() => busy = false);
+                          widget.onSnack(_cErr(r.$2));
+                        }
+                      },
+                child: busy
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('نشر'),
+              ),
+            ]),
+          ]),
+        ),
+      ),
+    );
+    t.dispose();
+  }
+
+  Widget header(Comm c) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          _CAvatar(c.avatar, c.name, r: 34),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(child: fw.Text(c.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18))),
+                if (c.isPrivate) const Padding(padding: EdgeInsetsDirectional.only(start: 6), child: Icon(Icons.lock_outline, size: 16)),
+              ]),
+              const SizedBox(height: 2),
+              fw.Text('${T(kCommCats[c.category] ?? c.category)} • ${c.members} ${T('عضو')}', style: TextStyle(color: cs.onSurface.withAlpha(160))),
+            ]),
+          ),
+        ]),
+        if ((c.description ?? '').isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: fw.Text(c.description!)),
+        if (c.interests.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Wrap(spacing: 6, runSpacing: 4, children: [
+              for (final t in c.interests) Chip(label: Text(kCommTags[t] ?? t), visualDensity: VisualDensity.compact),
+            ]),
+          ),
+        if ((c.rules ?? '').isNotEmpty)
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: const Text('قواعد المجتمع', style: TextStyle(fontWeight: FontWeight.w700)),
+            children: [Align(alignment: AlignmentDirectional.centerStart, child: fw.Text(c.rules!))],
+          ),
+        const SizedBox(height: 10),
+        if (c.isMember && !c.isOwner)
+          OutlinedButton(onPressed: leave, child: const Text('مغادرة المجتمع'))
+        else if (c.isPending)
+          const OutlinedButton(onPressed: null, child: Text('بانتظار موافقة المشرف'))
+        else if (!c.isMember)
+          FilledButton(onPressed: busyJoin ? null : join, child: Text(c.isPrivate ? 'طلب انضمام' : 'انضمام')),
+      ]),
+    );
+  }
+
+  Widget postCard(Map<String, dynamic> p) {
+    final cs = Theme.of(context).colorScheme;
+    final id = p['id'] as String;
+    final au = p['author'] as String;
+    final body = p['body'] as String?;
+    final media = p['media'] as String?;
+    final at = DateTime.tryParse('${p['created_at']}')?.toLocal() ?? DateTime.now();
+    final liked = rx[id]?.contains(widget.meU) ?? false;
+    final n = rx[id]?.length ?? 0;
+    final mine = au == widget.meU;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 4, 10),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            _CAvatar(null, au, r: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                fw.Text('@$au', style: const TextStyle(fontWeight: FontWeight.w700)),
+                fw.Text(T(ago(at)), style: TextStyle(fontSize: 11, color: cs.onSurface.withAlpha(150))),
+              ]),
+            ),
+            PopupMenuButton<String>(
+              onSelected: (v) => postAction(v, p),
+              itemBuilder: (_) => [
+                if (mine || (cm?.isMod ?? false)) const PopupMenuItem(value: 'del', child: Text('حذف')),
+                if (!mine) const PopupMenuItem(value: 'rep', child: Text('إبلاغ')),
+                if (!mine) const PopupMenuItem(value: 'blk', child: Text('حظر المستخدم')),
+              ],
+            ),
+          ]),
+          if (body != null && body.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6, right: 8), child: fw.Text(body)),
+          if (media != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, right: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network('$sbUrl/storage/v1/object/public/orx/$media',
+                    width: double.infinity, height: 240, fit: BoxFit.cover, errorBuilder: (c, e, s) => const SizedBox.shrink()),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Row(children: [
+            InkWell(
+              onTap: (cm?.isMember ?? false) ? () => toggle(p) : null,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Row(children: [
+                  Icon(liked ? Icons.bolt_rounded : Icons.bolt_outlined, color: liked ? cs.primary : null),
+                  const SizedBox(width: 4),
+                  fw.Text('$n'),
+                ]),
+              ),
+            ),
+            const SizedBox(width: 14),
+            InkWell(
+              onTap: () => openComments(p),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Row(children: [
+                  const Icon(Icons.chat_bubble_outline_rounded, size: 20),
+                  const SizedBox(width: 4),
+                  fw.Text('${cmt[id] ?? 0}'),
+                ]),
+              ),
+            ),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  Widget bodyView() {
+    final c = cm!;
+    final canView = c.canView;
+    final extra = !canView ? 1 : (posts.isEmpty && !loadingP ? 1 : 0);
+    return RefreshIndicator(
+      onRefresh: loadCommunity,
+      child: ListView.builder(
+        controller: sc,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 90),
+        itemCount: 1 + (canView ? posts.length : 0) + 1 + extra,
+        itemBuilder: (ctx, i) {
+          if (i == 0) return header(c);
+          final k = i - 1;
+          if (canView && k < posts.length) return postCard(posts[k]);
+          final r = k - (canView ? posts.length : 0);
+          if (r == 0) {
+            if (!canView) {
+              return const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(children: [
+                    Icon(Icons.lock_outline, size: 40),
+                    SizedBox(height: 8),
+                    Text('هذا مجتمع خاص. انضم ليظهر لك محتواه.', textAlign: TextAlign.center),
+                  ]));
+            }
+            if (loadingP) return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()));
+            if (errP) return TextButton(onPressed: () => loadPosts(), child: const Text('إعادة المحاولة'));
+            if (posts.isEmpty) return const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('لا توجد منشورات بعد')));
+          }
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = cm;
+    return Scaffold(
+      appBar: AppBar(
+        title: fw.Text(c?.name ?? T('المجتمع'), maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          if (c != null && c.isMod) IconButton(tooltip: T('إدارة المجتمع'), icon: const Icon(Icons.admin_panel_settings_outlined), onPressed: manage),
+          if (c != null && !c.isOwner)
+            PopupMenuButton<String>(
+              onSelected: (v) => _report(context, widget.cloud, widget.meU, widget.cid,
+                  type: 'community', target: c.name, id: widget.cid, onSnack: widget.onSnack),
+              itemBuilder: (_) => const [PopupMenuItem(value: 'rep', child: Text('إبلاغ عن المجتمع'))],
+            ),
+        ],
+      ),
+      body: loadingC
+          ? const Center(child: CircularProgressIndicator())
+          : (errC || c == null)
+              ? Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.cloud_off_rounded, size: 40),
+                    const SizedBox(height: 8),
+                    const Text('تعذر التحميل'),
+                    const SizedBox(height: 8),
+                    OutlinedButton(onPressed: loadCommunity, child: const Text('إعادة المحاولة')),
+                  ]),
+                )
+              : bodyView(),
+      floatingActionButton: (c != null && c.isMember)
+          ? FloatingActionButton.extended(onPressed: newPost, icon: const Icon(Icons.edit_outlined), label: const Text('منشور جديد'))
+          : null,
+    );
+  }
+}
+
+// ---------------------------- comments ----------------------------
+class _CommentsSheet extends StatefulWidget {
+  final Cloud cloud;
+  final String meU, cid, postId;
+  final bool canComment, isMod;
+  final Set<String> blocked;
+  final void Function(String) onSnack, onBlock;
+  final void Function(int) onCount;
+  const _CommentsSheet(
+      {required this.cloud,
+      required this.meU,
+      required this.cid,
+      required this.postId,
+      required this.canComment,
+      required this.isMod,
+      required this.blocked,
+      required this.onSnack,
+      required this.onBlock,
+      required this.onCount});
+  @override
+  State<_CommentsSheet> createState() => _CommentsSheetState();
+}
+
+class _CommentsSheetState extends State<_CommentsSheet> {
+  final list = <Map<String, dynamic>>[];
+  final tc = TextEditingController();
+  bool loading = true, error = false, sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  @override
+  void dispose() {
+    tc.dispose();
+    super.dispose();
+  }
+
+  Future<void> load() async {
+    setState(() {
+      loading = true;
+      error = false;
+    });
+    final r = await widget.cloud.rest('GET',
+        '/rest/v1/community_comments?post_id=eq.${Uri.encodeComponent(widget.postId)}&order=created_at.asc&limit=200');
+    if (!mounted) return;
+    if (r.$1 == 200 && r.$2 is List) {
+      list
+        ..clear()
+        ..addAll([for (final e in r.$2 as List) Map<String, dynamic>.from(e as Map)].where((x) => !widget.blocked.contains(x['author'])));
+      widget.onCount(list.length);
+      setState(() => loading = false);
+    } else {
+      setState(() {
+        loading = false;
+        error = true;
+      });
+    }
+  }
+
+  Future<void> send() async {
+    final t = tc.text.trim();
+    if (t.isEmpty || sending) return;
+    setState(() => sending = true);
+    final id = '${widget.meU}${DateTime.now().microsecondsSinceEpoch}';
+    final r = await widget.cloud.rest('POST', '/rest/v1/community_comments',
+        headers: {'Prefer': 'return=minimal'},
+        body: {'id': id, 'post_id': widget.postId, 'community_id': widget.cid, 'author': widget.meU, 'body': t});
+    if (!mounted) return;
+    setState(() => sending = false);
+    if (r.$1 >= 200 && r.$1 < 300) {
+      tc.clear();
+      load();
+    } else {
+      widget.onSnack(_cErr(r.$2));
+    }
+  }
+
+  Future<void> act(String v, Map<String, dynamic> e) async {
+    final id = e['id'] as String;
+    final au = e['author'] as String;
+    if (v == 'del') {
+      final r = await widget.cloud.rest('DELETE', '/rest/v1/community_comments?id=eq.${Uri.encodeComponent(id)}');
+      if (!mounted) return;
+      if (r.$1 >= 200 && r.$1 < 300) {
+        load();
+      } else {
+        widget.onSnack(_cErr(r.$2));
+      }
+    } else if (v == 'rep') {
+      await _report(context, widget.cloud, widget.meU, widget.cid, type: 'comment', target: au, id: id, onSnack: widget.onSnack);
+    } else if (v == 'blk') {
+      widget.onBlock(au);
+      if (mounted) {
+        setState(() => list.removeWhere((x) => x['author'] == au));
+        widget.onCount(list.length);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext c) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(c).viewInsets.bottom),
+      child: SizedBox(
+        height: MediaQuery.of(c).size.height * .7,
+        child: Column(children: [
+          const Padding(padding: EdgeInsets.all(12), child: Text('التعليقات', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : error
+                    ? Center(child: OutlinedButton(onPressed: load, child: const Text('إعادة المحاولة')))
+                    : list.isEmpty
+                        ? const Center(child: Text('لا توجد تعليقات بعد'))
+                        : ListView.builder(
+                            itemCount: list.length,
+                            itemBuilder: (ctx, i) {
+                              final e = list[i];
+                              final au = e['author'] as String;
+                              final mine = au == widget.meU;
+                              return ListTile(
+                                dense: true,
+                                leading: _CAvatar(null, au, r: 15),
+                                title: fw.Text('@$au', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                subtitle: fw.Text('${e['body']}'),
+                                trailing: PopupMenuButton<String>(
+                                  onSelected: (v) => act(v, e),
+                                  itemBuilder: (_) => [
+                                    if (mine || widget.isMod) const PopupMenuItem(value: 'del', child: Text('حذف')),
+                                    if (!mine) const PopupMenuItem(value: 'rep', child: Text('إبلاغ')),
+                                    if (!mine) const PopupMenuItem(value: 'blk', child: Text('حظر المستخدم')),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+          ),
+          if (widget.canComment)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+              child: Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: tc,
+                    maxLength: 300,
+                    decoration: InputDecoration(hintText: T('اكتب تعليقاً...'), isDense: true, counterText: '', border: const OutlineInputBorder()),
+                    onSubmitted: (_) => send(),
+                  ),
+                ),
+                IconButton(onPressed: sending ? null : send, icon: const Icon(Icons.send_rounded)),
+              ]),
+            )
+          else
+            const Padding(padding: EdgeInsets.all(12), child: Text('انضم للمجتمع لتتمكن من التعليق')),
+        ]),
+      ),
+    );
+  }
+}
+
+// ---------------------------- management ----------------------------
+class ManageCommunityPage extends StatefulWidget {
+  final Cloud cloud;
+  final String meU;
+  final Comm cm;
+  final void Function(String) onSnack;
+  const ManageCommunityPage({super.key, required this.cloud, required this.meU, required this.cm, required this.onSnack});
+  @override
+  State<ManageCommunityPage> createState() => _ManageCommunityPageState();
+}
+
+class _ManageCommunityPageState extends State<ManageCommunityPage> {
+  final req = <Map<String, dynamic>>[];
+  final members = <Map<String, dynamic>>[];
+  bool loading = true, error = false, saving = false;
+  late final nc = TextEditingController(text: widget.cm.name);
+  late final dc = TextEditingController(text: widget.cm.description ?? '');
+  late final rc = TextEditingController(text: widget.cm.rules ?? '');
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  @override
+  void dispose() {
+    nc.dispose();
+    dc.dispose();
+    rc.dispose();
+    super.dispose();
+  }
+
+  Future<void> load() async {
+    setState(() {
+      loading = true;
+      error = false;
+    });
+    final r = await widget.cloud.rest('GET',
+        '/rest/v1/community_members?community_id=eq.${widget.cm.id}&select=uid,u,role,status,joined_at&order=joined_at.asc&limit=500');
+    if (!mounted) return;
+    if (r.$1 == 200 && r.$2 is List) {
+      final l = [for (final e in r.$2 as List) Map<String, dynamic>.from(e as Map)];
+      setState(() {
+        req
+          ..clear()
+          ..addAll(l.where((m) => m['status'] == 'pending'));
+        members
+          ..clear()
+          ..addAll(l.where((m) => m['status'] == 'active'));
+        loading = false;
+      });
+    } else {
+      setState(() {
+        loading = false;
+        error = true;
+      });
+    }
+  }
+
+  Future<void> rpc(String fn, Map<String, dynamic> body, {String? ok}) async {
+    final r = await widget.cloud.rest('POST', '/rest/v1/rpc/$fn', body: body);
+    if (!mounted) return;
+    if (r.$1 >= 200 && r.$1 < 300) {
+      if (ok != null) widget.onSnack(ok);
+      load();
+    } else {
+      widget.onSnack(_cErr(r.$2));
+    }
+  }
+
+  Future<void> save() async {
+    final n = nc.text.trim();
+    if (n.length < 3 || n.length > 40) {
+      widget.onSnack('اسم المجتمع من 3 إلى 40 حرفاً');
+      return;
+    }
+    setState(() => saving = true);
+    final r = await widget.cloud.rest('PATCH', '/rest/v1/communities?id=eq.${widget.cm.id}',
+        headers: {'Prefer': 'return=minimal'},
+        body: {'name': n, 'description': dc.text.trim().isEmpty ? null : dc.text.trim(), 'rules': rc.text.trim().isEmpty ? null : rc.text.trim()});
+    if (!mounted) return;
+    setState(() => saving = false);
+    widget.onSnack(r.$1 >= 200 && r.$1 < 300 ? 'تم الحفظ' : _cErr(r.$2));
+  }
+
+  Future<void> deleteCommunity() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('حذف المجتمع نهائياً؟'),
+        content: const Text('سيتم حذف كل المنشورات والتعليقات والأعضاء ولا يمكن التراجع.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('حذف')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final r = await widget.cloud.rest('POST', '/rest/v1/rpc/delete_community', body: {'p_c': widget.cm.id});
+    if (!mounted) return;
+    if (r.$1 >= 200 && r.$1 < 300) {
+      Navigator.pop(context, 'deleted');
+    } else {
+      widget.onSnack(_cErr(r.$2));
+    }
+  }
+
+  Widget requestsTab() {
+    if (loading) return const Center(child: CircularProgressIndicator());
+    if (error) return Center(child: OutlinedButton(onPressed: load, child: const Text('إعادة المحاولة')));
+    if (req.isEmpty) return const Center(child: Text('لا توجد طلبات انضمام'));
+    return ListView(children: [
+      for (final m in req)
+        ListTile(
+          leading: _CAvatar(null, m['u'] as String, r: 18),
+          title: fw.Text('@${m['u']}'),
+          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+            IconButton(
+                icon: const Icon(Icons.close, color: Colors.redAccent),
+                onPressed: () => rpc('review_request', {'p_c': widget.cm.id, 'p_uid': m['uid'], 'p_approve': false}, ok: 'تم الرفض')),
+            IconButton(
+                icon: const Icon(Icons.check, color: Colors.green),
+                onPressed: () => rpc('review_request', {'p_c': widget.cm.id, 'p_uid': m['uid'], 'p_approve': true}, ok: 'تمت الموافقة')),
+          ]),
+        ),
+    ]);
+  }
+
+  Widget membersTab() {
+    if (loading) return const Center(child: CircularProgressIndicator());
+    if (error) return Center(child: OutlinedButton(onPressed: load, child: const Text('إعادة المحاولة')));
+    final owner = widget.cm.isOwner;
+    return ListView(children: [
+      for (final m in members)
+        ListTile(
+          leading: _CAvatar(null, m['u'] as String, r: 18),
+          title: fw.Text('@${m['u']}'),
+          subtitle: Text(m['role'] == 'owner' ? 'المالك' : (m['role'] == 'moderator' ? 'مشرف' : 'عضو عادي')),
+          trailing: m['role'] == 'owner' || m['uid'] == widget.cloud.uid
+              ? null
+              : PopupMenuButton<String>(
+                  onSelected: (v) {
+                    if (v == 'rm') {
+                      rpc('remove_member', {'p_c': widget.cm.id, 'p_uid': m['uid']}, ok: 'تمت الإزالة');
+                    } else {
+                      rpc('set_member_role', {'p_c': widget.cm.id, 'p_uid': m['uid'], 'p_role': v}, ok: 'تم التحديث');
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    if (owner && m['role'] != 'moderator') const PopupMenuItem(value: 'moderator', child: Text('ترقية إلى مشرف')),
+                    if (owner && m['role'] == 'moderator') const PopupMenuItem(value: 'member', child: Text('إلغاء الإشراف')),
+                    if (owner || m['role'] != 'moderator') const PopupMenuItem(value: 'rm', child: Text('إزالة من المجتمع')),
+                  ],
+                ),
+        ),
+    ]);
+  }
+
+  Widget settingsTab() => ListView(padding: const EdgeInsets.all(16), children: [
+        TextField(controller: nc, maxLength: 40, decoration: InputDecoration(labelText: T('اسم المجتمع'), border: const OutlineInputBorder())),
+        const SizedBox(height: 8),
+        TextField(controller: dc, maxLength: 300, maxLines: 3, decoration: InputDecoration(labelText: T('الوصف'), border: const OutlineInputBorder())),
+        const SizedBox(height: 8),
+        TextField(controller: rc, maxLength: 600, maxLines: 4, decoration: InputDecoration(labelText: T('قواعد المجتمع'), border: const OutlineInputBorder())),
+        const SizedBox(height: 8),
+        FilledButton(
+            onPressed: saving ? null : save,
+            child: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('حفظ')),
+        if (widget.cm.isOwner) ...[
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+              onPressed: deleteCommunity,
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              label: const Text('حذف المجتمع')),
+        ],
+      ]);
+
+  @override
+  Widget build(BuildContext c) => DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('إدارة المجتمع'),
+            bottom: const TabBar(tabs: [Tab(child: Text('الطلبات')), Tab(child: Text('الأعضاء')), Tab(child: Text('التعديل'))]),
+          ),
+          body: TabBarView(children: [requestsTab(), membersTab(), settingsTab()]),
+        ),
+      );
 }
