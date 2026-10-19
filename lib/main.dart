@@ -45,6 +45,11 @@ const accents = [
   Color(0xFFFF4081),
 ];
 const kPlusFrom = 6;
+// ألوان واجهة المحادثات (الوضع الداكن): كحلي مع لمسات سماوية وزرقاء وبنفسجية
+const kNavyBg = Color(0xFF060C24);
+const kNavyCard = Color(0xFF0E1736);
+const kBubbleA = Color(0xFF3B4BF5);
+const kBubbleB = Color(0xFF6A3DF0);
 final accentIdx = ValueNotifier<int>(0);
 final themeMode = ValueNotifier<ThemeMode>(ThemeMode.dark);
 
@@ -100,6 +105,16 @@ const _en = <String, String>{
   'حسابي': 'Profile',
   'المظهر': 'Settings',
   'أصوات الإشعارات': 'Notification sounds',
+  'أمس': 'Yesterday',
+  'الإثنين': 'Mon',
+  'الثلاثاء': 'Tue',
+  'الأربعاء': 'Wed',
+  'الخميس': 'Thu',
+  'الجمعة': 'Fri',
+  'السبت': 'Sat',
+  'الأحد': 'Sun',
+  'إيموجي': 'Emoji',
+  'إرفاق صورة': 'Attach image',
   'المجتمعات': 'Communities',
   'مجتمعاتي': 'My communities',
   'إنشاء مجتمع': 'Create community',
@@ -1332,6 +1347,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         blocked.addAll(List<String>.from((j['blocked'] as List?) ?? []));
         myStoryLikes.addAll(List<String>.from((j['myStoryLikes'] as List?) ?? []));
         viewed.addAll(List<String>.from((j['viewed'] as List?) ?? []));
+        final ri = j['readIn'];
+        if (ri is Map) {
+          for (final e in ri.entries) {
+            readIn[e.key.toString()] = (e.value as num).toInt();
+          }
+        } else if (me != null) {
+          // أول تشغيل بعد التحديث: اعتبر كل الرسائل القديمة مقروءة
+          for (final m in msgs) {
+            if (m.s != me!.u) readIn[m.c] = (readIn[m.c] ?? 0) + 1;
+          }
+        }
         final cj = j['cloud'];
         if (cj is Map) {
           cloud.rt = cj['rt'] as String?;
@@ -1373,6 +1399,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         'blocked': blocked.toList(),
         'myStoryLikes': myStoryLikes.toList(),
         'viewed': viewed.toList(),
+        'readIn': readIn,
         'lang': langCode.value,
         'cloud': {'rt': cloud.rt, 'uid': cloud.uid, 'avSrc': cavSrc, 'av': cav, 'last': lastMsgId},
       }));
@@ -2238,6 +2265,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       }
     }
     setState(() => msgs.add(Msg(c, s, i, t: t, img: img, aud: aud)));
+    if (view == 'chat' && cur == c) markRead(c);
     save();
   }
 
@@ -2496,6 +2524,100 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   final pendingOut = <String>{}, reqIn = <String>{};
   final autoV = <String, bool>{};
   final plusU = <String, bool>{};
+  // عدد الرسائل الواردة التي قرأها المستخدم في كل محادثة (لشارة غير المقروء)
+  final readIn = <String, int>{};
+  bool emojiOpen = false;
+  int incomingCount(String c) => msgs.where((m) => m.c == c && m.s != me!.u).length;
+  int unreadOf(String c) {
+    final n = incomingCount(c) - (readIn[c] ?? 0);
+    return n < 0 ? 0 : n;
+  }
+
+  void markRead(String c) => readIn[c] = incomingCount(c);
+
+  String chatStamp(String id) {
+    if (id.length < 16) return '';
+    final us = int.tryParse(id.substring(id.length - 16));
+    if (us == null) return '';
+    final d = DateTime.fromMicrosecondsSinceEpoch(us);
+    final now = DateTime.now();
+    final days = DateTime(now.year, now.month, now.day).difference(DateTime(d.year, d.month, d.day)).inDays;
+    if (days <= 0) return msgTime(id);
+    if (days == 1) return T('أمس');
+    if (days < 7) return T(const ['الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'][d.weekday - 1]);
+    return '${d.day}/${d.month}/${d.year % 100}';
+  }
+
+  static const _emojis = [
+    '😀', '😂', '😍', '🥰', '😎', '🤔', '😢', '😡', '👍', '👎', '👏', '🙏', '🔥', '⚡', '❤️', '💯',
+    '🎉', '😅', '🤝', '👋', '😉', '😴', '🤩', '😇', '🙌', '💪', '🥳', '😭', '😬', '🤗', '☕', '🌹',
+  ];
+
+  void addEmoji(String e) {
+    final t = input.text;
+    final sel = input.selection;
+    final i = sel.isValid ? sel.start : t.length;
+    final j = sel.isValid ? sel.end : t.length;
+    input.text = t.replaceRange(i, j, e);
+    input.selection = TextSelection.collapsed(offset: i + e.length);
+    setState(() {});
+  }
+
+  Widget emojiPanel(ColorScheme cs) => Container(
+        height: 190,
+        margin: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark ? kNavyCard : cs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: GridView.count(
+          crossAxisCount: 8,
+          padding: const EdgeInsets.all(8),
+          children: [
+            for (final e in _emojis)
+              InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => addEmoji(e),
+                child: Center(child: fw.Text(e, style: const TextStyle(fontSize: 24))),
+              ),
+          ],
+        ),
+      );
+
+  Widget chatTabs() {
+    final cs = Theme.of(context).colorScheme;
+    Widget tab(IconData i, String label, bool sel, VoidCallback f) => Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Material(
+              color: sel ? cs.primary.withAlpha(40) : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: f,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Icon(i, size: 20, color: sel ? cs.primary : cs.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text(label,
+                        style: TextStyle(
+                            fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                            color: sel ? cs.primary : cs.onSurfaceVariant)),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+      child: Row(children: [
+        tab(Icons.chat_bubble_outline_rounded, 'المحادثات', true, () {}),
+        tab(Icons.groups_2_outlined, 'المجتمعات', false, openCommunities),
+      ]),
+    );
+  }
   DateTime? plusUntil;
   bool get isPlus => me != null && plusU[me!.u] == true;
   bool plusBoost(Post p) => plusU[p.from] == true && DateTime.now().difference(p.at).inDays < 3;
@@ -2560,24 +2682,48 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Widget chatHead() {
     final c = cur!;
     const bold = TextStyle(fontWeight: FontWeight.w700, fontSize: 17);
-    final online = c.startsWith('p:') && who.containsValue(c.substring(2));
-    final title = c.startsWith('p:') ? nm(c.substring(2), chatTitle(c), st: bold) : fw.Text(chatTitle(c), style: bold);
+    final isP = c.startsWith('p:');
+    final online = isP && who.containsValue(c.substring(2));
+    final title = isP ? nm(c.substring(2), chatTitle(c), st: bold) : fw.Text(chatTitle(c), style: bold);
     String? sub;
     if (online) {
       sub = 'متصل الآن';
     } else if (c.startsWith('g:')) {
       sub = '${(groups[c.substring(2)]?.m.length ?? 0) + 1} أعضاء';
     }
+    final avatar = Stack(children: [
+      av(isP ? prof(c.substring(2)).a : null, r: 19, icon: isP ? Icons.person_rounded : Icons.group_rounded),
+      if (online)
+        PositionedDirectional(
+          bottom: 0,
+          end: 0,
+          child: Container(
+            width: 11,
+            height: 11,
+            decoration: BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+              border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
+            ),
+          ),
+        ),
+    ]);
     return GestureDetector(
-      onTap: c.startsWith('p:') ? () => openProf(c.substring(2)) : null,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        title,
-        if (sub != null)
-          Text(sub,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: online ? Colors.green : Theme.of(context).colorScheme.onSurfaceVariant)),
+      onTap: isP ? () => openProf(c.substring(2)) : null,
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        avatar,
+        const SizedBox(width: 10),
+        Flexible(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            title,
+            if (sub != null)
+              Text(sub,
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: online ? Colors.green : Theme.of(context).colorScheme.onSurfaceVariant)),
+          ]),
+        ),
       ]),
     );
   }
@@ -2749,6 +2895,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final inChat = view == 'chat';
     final otherProf = view == 'profile' && profU != me!.u;
     final owner = inChat && cur == 'g:${me!.u}';
+    final navy = Theme.of(c).brightness == Brightness.dark && (view == 'home' || inChat);
     return PopScope(
       canPop: view == 'feed',
       onPopInvokedWithResult: (d, _) {
@@ -2756,10 +2903,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       },
       child: Scaffold(
         key: scKey,
+        backgroundColor: navy ? kNavyBg : null,
         drawer: (inChat || otherProf) ? null : sideMenu(),
         appBar: AppBar(
           centerTitle: true,
-          backgroundColor: cs.surface,
+          backgroundColor: navy ? kNavyBg : cs.surface,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           leading: inChat
@@ -2851,6 +2999,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Widget tile(String c, String title, String? a, IconData i) {
     final cs = Theme.of(context).colorScheme;
+    final card = Theme.of(context).brightness == Brightness.dark ? kNavyCard : cs.surfaceContainerLow;
+    final unread = unreadOf(c);
     final last = msgs.where((m) => m.c == c).lastOrNull;
     final online = c.startsWith('p:') && who.containsValue(c.substring(2));
     const bold = TextStyle(fontWeight: FontWeight.w700, fontSize: 16);
@@ -2860,7 +3010,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: Material(
-        color: cs.surfaceContainerLow,
+        color: card,
         borderRadius: BorderRadius.circular(20),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -2868,6 +3018,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           onTap: () => setState(() {
             cur = c;
             view = 'chat';
+            emojiOpen = false;
+            markRead(c);
           }),
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -2884,7 +3036,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                       decoration: BoxDecoration(
                         color: Colors.green,
                         shape: BoxShape.circle,
-                        border: Border.all(color: cs.surfaceContainerLow, width: 2.5),
+                        border: Border.all(color: card, width: 2.5),
                       ),
                     ),
                   ),
@@ -2900,10 +3052,25 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                       style: TextStyle(color: cs.onSurfaceVariant)),
                 ]),
               ),
-              if (last != null)
+              if (last != null || unread > 0)
                 Padding(
                   padding: const EdgeInsetsDirectional.only(start: 8),
-                  child: Text(msgTime(last.i), style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                  child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    if (last != null)
+                      fw.Text(chatStamp(last.i),
+                          style: TextStyle(fontSize: 11, color: unread > 0 ? cs.primary : cs.onSurfaceVariant)),
+                    if (unread > 0)
+                      Container(
+                        margin: const EdgeInsets.only(top: 6),
+                        constraints: const BoxConstraints(minWidth: 22),
+                        height: 22,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(11)),
+                        child: fw.Text(unread > 99 ? '99+' : '$unread',
+                            style: TextStyle(color: cs.onPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                  ]),
                 ),
             ]),
           ),
@@ -2919,6 +3086,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final gl = groups.values.where((g) => hit(g.n)).toList();
     final pl = contacts.values.where((p) => p.u != me!.u && !blocked.contains(p.u) && (hit(p.n) || hit(p.u))).toList();
     return ListView(padding: const EdgeInsets.only(bottom: 12), children: [
+      chatTabs(),
       storiesBar(),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
@@ -4803,7 +4971,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       pushDone = true;
       final code = await savePushToken(tok);
       pushLog.add('حفظ التوكن في السيرفر: $code');
-      if (code < 200 || code >= 300) pushDone = false;
+      if (code < 200 || code >= 300) {
+        pushDone = false;
+      } else {
+        pushReported = true; // نجح كل شيء: لا نعرض نافذة التشخيص
+      }
       pushSubs
         ..add(fm.onTokenRefresh.listen(savePushToken))
         ..add(FirebaseMessaging.onMessage.listen(onPushForeground))
@@ -4842,7 +5014,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   void onPushForeground(RemoteMessage m) {
     final d = m.data;
-    if (d['t'] == 'msg' && cur == 'p:${d['from']}') return;
+    if (d['t'] == 'msg' && cur == 'p:${d['u'] ?? d['from']}') return;
     if (d['t'] == 'req' || d['t'] == 'follow') syncFollows();
     final txt = [m.notification?.title, m.notification?.body].whereType<String>().join(': ');
     if (txt.isNotEmpty && mounted) snack(txt);
@@ -4851,8 +5023,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   void onPushOpen(RemoteMessage m) {
     final d = m.data;
     final t = d['t'];
-    if (t == 'msg' && d['from'] != null) {
-      messageUser(d['from'].toString());
+    final fu = d['u'] ?? d['from'];
+    if (t == 'msg' && fu != null) {
+      messageUser(fu.toString());
     } else if (t == 'req') {
       openPeople('requests');
     } else if (t == 'follow') {
@@ -6338,14 +6511,26 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
       Expanded(
         child: Container(
-          decoration: BoxDecoration(color: cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(28)),
+          decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark ? kNavyCard : cs.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(28)),
           child: Row(children: [
-            IconButton(icon: const Icon(Icons.image_rounded), onPressed: sendImg),
+            IconButton(
+              tooltip: T('إيموجي'),
+              icon: Icon(emojiOpen ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined),
+              onPressed: () {
+                FocusScope.of(context).unfocus();
+                setState(() => emojiOpen = !emojiOpen);
+              },
+            ),
             Expanded(
               child: TextField(
                 controller: input,
                 minLines: 1,
                 maxLines: 5,
+                onTap: () {
+                  if (emojiOpen) setState(() => emojiOpen = false);
+                },
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: T('اكتب رسالة'),
@@ -6356,12 +6541,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 ),
               ),
             ),
+            IconButton(tooltip: T('إرفاق صورة'), icon: const Icon(Icons.attach_file_rounded), onPressed: sendImg),
           ]),
         ),
       ),
       const SizedBox(width: 8),
       IconButton.filled(
-        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+        style: IconButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark ? kBubbleA : null),
         icon: Icon(empty ? Icons.mic_rounded : Icons.send_rounded),
         onPressed: empty ? startRec : sendText,
       ),
@@ -6371,6 +6559,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Widget chat() {
     final cs = Theme.of(context).colorScheme;
     final l = msgs.where((m) => m.c == cur).toList();
+    if (cur != null) markRead(cur!);
     return Column(children: [
       Expanded(
         child: l.isEmpty
@@ -6381,6 +6570,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 children: [for (final m in l.reversed) bubble(m)],
               ),
       ),
+      if (emojiOpen && !recording) emojiPanel(cs),
       SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
@@ -6418,9 +6608,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Widget bubble(Msg m) {
     final cs = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final mine = m.s == me!.u;
     final img = m.img != null;
-    final fg = mine ? cs.onPrimary : cs.onSurface;
+    final fg = mine ? (dark ? Colors.white : cs.onPrimary) : cs.onSurface;
     final counts = <String, int>{};
     for (final e in m.r.values) {
       counts[e] = (counts[e] ?? 0) + 1;
@@ -6439,10 +6630,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               child: Container(
                 padding: img ? const EdgeInsets.all(4) : const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
-                  color: mine ? null : cs.surfaceContainerHigh,
+                  color: mine ? null : (dark ? kNavyCard : cs.surfaceContainerHigh),
                   gradient: mine
                       ? LinearGradient(
-                          colors: [cs.primary, Color.lerp(cs.primary, cs.tertiary, 0.55)!],
+                          colors: dark ? const [kBubbleA, kBubbleB] : [cs.primary, Color.lerp(cs.primary, cs.tertiary, 0.55)!],
                           begin: AlignmentDirectional.topStart,
                           end: AlignmentDirectional.bottomEnd)
                       : null,
