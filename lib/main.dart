@@ -105,6 +105,28 @@ const _en = <String, String>{
   'حسابي': 'Profile',
   'المظهر': 'Settings',
   'أصوات الإشعارات': 'Notification sounds',
+  'شكل الستوري': 'Story ring style',
+  'كلاسيك': 'Classic',
+  'نيون': 'Neon',
+  'ذهبي': 'Gold',
+  'مقطّع': 'Dashed',
+  'صانع محتوى': 'Creator',
+  'نشاط تجاري': 'Business',
+  'فن وتصميم': 'Art & design',
+  'تعليم': 'Education',
+  'تخصص الحساب': 'Account type',
+  'حساب شخصي': 'Personal account',
+  'حساب احترافي': 'Professional account',
+  'التحويل إلى حساب احترافي': 'Switch to a professional account',
+  'تغيير': 'Change',
+  'اختر تخصص صفحتك لتظهر للناس وتشوف إحصائيات المشاهدات والزيارات.': 'Pick your page type to show it to people and see views and visits stats.',
+  'مشاهدات المحتوى': 'Content views',
+  'زيارات الملف (30 يوم)': 'Profile visits (30 days)',
+  'زوار مختلفون (30 يوم)': 'Unique visitors (30 days)',
+  'تم تحويل حسابك إلى حساب احترافي': 'Your account is now professional',
+  'رجع حسابك شخصي': 'Your account is personal again',
+  'تعذر تغيير التخصص': 'Couldn't change the account type',
+  'إشعارات المتابعات هتظهر هنا': 'Follow notifications will show up here',
   'أمس': 'Yesterday',
   'الإثنين': 'Mon',
   'الثلاثاء': 'Tue',
@@ -1347,6 +1369,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         blocked.addAll(List<String>.from((j['blocked'] as List?) ?? []));
         myStoryLikes.addAll(List<String>.from((j['myStoryLikes'] as List?) ?? []));
         viewed.addAll(List<String>.from((j['viewed'] as List?) ?? []));
+        ringStyle = ((j['ring'] as num?)?.toInt() ?? 0).clamp(0, 3);
         final ri = j['readIn'];
         if (ri is Map) {
           for (final e in ri.entries) {
@@ -1400,6 +1423,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         'myStoryLikes': myStoryLikes.toList(),
         'viewed': viewed.toList(),
         'readIn': readIn,
+        'ring': ringStyle,
         'lang': langCode.value,
         'cloud': {'rt': cloud.rt, 'uid': cloud.uid, 'avSrc': cavSrc, 'av': cav, 'last': lastMsgId},
       }));
@@ -2442,6 +2466,73 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     publish(Story(me!.u, img: await keep(f.path)));
   }
 
+  Widget ringFrame(bool active, Widget child, ColorScheme cs) {
+    final inner = Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: cs.surface),
+      child: child,
+    );
+    if (ringStyle == 3) {
+      return CustomPaint(
+        painter: _DashRingPainter(active ? cs.primary : cs.outlineVariant),
+        child: Padding(padding: const EdgeInsets.all(5), child: inner),
+      );
+    }
+    List<Color>? cols;
+    List<BoxShadow>? glow;
+    if (active) {
+      if (ringStyle == 1) {
+        cols = const [Color(0xFF22D3EE), Color(0xFF7C3AED), Color(0xFFEC4899)];
+        glow = [BoxShadow(color: const Color(0xFF7C3AED).withAlpha(120), blurRadius: 10)];
+      } else if (ringStyle == 2) {
+        cols = const [Color(0xFFFFD54F), Color(0xFFFF8F00), Color(0xFFFFD54F)];
+      } else {
+        cols = [cs.primary, cs.tertiary];
+      }
+    }
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: cols == null
+            ? null
+            : LinearGradient(colors: cols, begin: AlignmentDirectional.topEnd, end: AlignmentDirectional.bottomStart),
+        border: active ? null : Border.all(color: cs.outlineVariant, width: 2),
+        boxShadow: glow,
+      ),
+      child: inner,
+    );
+  }
+
+  void ringSheet() => sheet('شكل الستوري', (c, st) {
+        final cs = Theme.of(context).colorScheme;
+        const names = ['كلاسيك', 'نيون', 'ذهبي', 'مقطّع'];
+        return [
+          Wrap(spacing: 18, runSpacing: 14, alignment: WrapAlignment.center, children: [
+            for (var i = 0; i < names.length; i++)
+              GestureDetector(
+                onTap: () {
+                  setState(() => ringStyle = i);
+                  save();
+                  st(() {});
+                },
+                child: Column(children: [
+                  Builder(builder: (_) {
+                    final keep = ringStyle;
+                    ringStyle = i;
+                    final w = ringFrame(true, const CircleAvatar(radius: 24, child: Icon(Icons.person_rounded)), cs);
+                    ringStyle = keep;
+                    return w;
+                  }),
+                  const SizedBox(height: 6),
+                  Text(names[i], style: TextStyle(fontWeight: ringStyle == i ? FontWeight.w800 : FontWeight.w500)),
+                  Icon(ringStyle == i ? Icons.check_circle : Icons.circle_outlined, size: 16, color: cs.primary),
+                ]),
+              ),
+          ]),
+        ];
+      });
+
   Widget ring(String label, Widget child, VoidCallback onTap, bool active) {
     final cs = Theme.of(context).colorScheme;
     return InkWell(
@@ -2450,24 +2541,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         child: Column(children: [
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: active
-                  ? LinearGradient(
-                      colors: [cs.primary, cs.tertiary],
-                      begin: AlignmentDirectional.topEnd,
-                      end: AlignmentDirectional.bottomStart)
-                  : null,
-              border: active ? null : Border.all(color: cs.outlineVariant, width: 2),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(shape: BoxShape.circle, color: cs.surface),
-              child: child,
-            ),
-          ),
+          ringFrame(active, child, cs),
           const SizedBox(height: 4),
           SizedBox(
             width: 62,
@@ -2526,6 +2600,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   final plusU = <String, bool>{};
   // عدد الرسائل الواردة التي قرأها المستخدم في كل محادثة (لشارة غير المقروء)
   final readIn = <String, int>{};
+  int ringStyle = 0; // شكل حلقة الستوري: 0 كلاسيك | 1 نيون | 2 ذهبي | 3 مقطّع
+  final notifs = <Map<String, dynamic>>[];
+  int notifUnread = 0;
+  String? myCat; // تخصص حسابي الاحترافي (null = حساب شخصي)
+  final pcat = <String, String>{};
+  int proVisits = 0, proVisitors = 0, proVisitsAll = 0;
   bool emojiOpen = false;
   int incomingCount(String c) => msgs.where((m) => m.c == c && m.s != me!.u).length;
   int unreadOf(String c) {
@@ -2735,6 +2815,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       profU = u;
     });
     fetchUser(u);
+    if (u != me?.u && netReady) {
+      cloud.rest('POST', '/rest/v1/rpc/record_profile_visit', body: {'p_u': u}).catchError((_) => (0, null));
+    }
   }
 
   void goBack() => setState(() {
@@ -2930,8 +3013,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               IconButton(
                   tooltip: T('الإشعارات'),
                   icon: Badge(
-                      isLabelVisible: reqIn.isNotEmpty,
-                      label: fw.Text('${reqIn.length}'),
+                      isLabelVisible: reqIn.isNotEmpty || notifUnread > 0,
+                      label: fw.Text('${reqIn.length + notifUnread}'),
                       child: const Icon(Icons.notifications_none_rounded)),
                   onPressed: notifSheet),
             if (view == 'feed')
@@ -4003,7 +4086,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               userMenu(p.from, postId: p.id, color: Colors.white),
             if (p.from == me!.u) ...[
               const SizedBox(height: 4),
-              const Icon(Icons.visibility_outlined, color: Colors.white, size: 24),
+              const OrxEye(size: 24, color: Colors.white),
               fw.Text('${vcount[p.id] ?? 0}', style: white),
             ],
           ]),
@@ -4560,6 +4643,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Future<void> refreshStats() async {
     if (!netReady || me == null || !await cloud.ensure()) return;
     await pullOwnerStats();
+    loadPro();
     if (me != null) loadAuto([me!.u]);
     if (mounted) setState(() {});
   }
@@ -4848,7 +4932,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         following.remove(u);
         pendingOut.remove(u);
       });
-      final r = await cloud.rest('DELETE', '/rest/v1/follows?follower=eq.${enc(me!.u)}&followee=eq.${enc(u)}');
+      final r = await cloud.rest('DELETE', '/rest/v1/follows?follower=eq.${enc(me!.u)}&followee=eq.${enc(u)}',
+          headers: {'x-orx-unfollow': '1'});
       if (r.$1 < 200 || r.$1 >= 300) snack('تعذر إلغاء المتابعة');
     } else {
       final r = await cloud.rest('POST', '/rest/v1/follows',
@@ -4871,6 +4956,31 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     }
     save();
     await syncFollows();
+  }
+
+  Future<void> loadNotifs() async {
+    if (me == null || !netReady || !await cloud.ensure()) return;
+    final r = await cloud.rest('GET', '/rest/v1/user_notifs?select=id,kind,from_u,is_read,created_at&order=created_at.desc&limit=50');
+    if (r.$1 != 200 || r.$2 is! List || !mounted) return;
+    final l = [for (final e in r.$2 as List) Map<String, dynamic>.from(e as Map)].where((x) => !blocked.contains(x['from_u'])).toList();
+    setState(() {
+      notifs
+        ..clear()
+        ..addAll(l);
+      notifUnread = l.where((x) => x['is_read'] != true).length;
+    });
+  }
+
+  Future<void> markNotifsRead() async {
+    if (notifUnread == 0) return;
+    await cloud.rest('PATCH', '/rest/v1/user_notifs?is_read=eq.false', headers: {'Prefer': 'return=minimal'}, body: {'is_read': true});
+    if (!mounted) return;
+    setState(() {
+      notifUnread = 0;
+      for (final x in notifs) {
+        x['is_read'] = true;
+      }
+    });
   }
 
   Future<void> syncFollows() async {
@@ -4905,6 +5015,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     });
     save();
     if (view == 'people') loadInfo({...fg, ...fr, ...po, ...ri});
+    loadNotifs();
   }
 
   Future<void> dropFollows(String u) async {
@@ -4918,6 +5029,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final need = us.where((u) => u != me?.u).toSet();
     if (need.isEmpty || !netReady || !await cloud.ensure()) return;
     loadAuto(need);
+    loadCats(need);
     final r = await cloud.rest('GET',
         '/rest/v1/profiles?u=in.(${need.map(enc).join(',')})&select=u,n,av,last_seen,show_status,is_private&limit=500');
     if (r.$1 != 200 || r.$2 is! List || !mounted) return;
@@ -5601,6 +5713,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           it(Icons.language_rounded, 'اللغة', langSheet),
           it(Icons.groups_2_outlined, 'المجتمعات', openCommunities),
           it(Icons.auto_awesome, 'ORX Plus', plusSheet),
+          it(Icons.motion_photos_on_outlined, 'شكل الستوري', ringSheet),
           it(Icons.notifications_active_outlined, 'أصوات الإشعارات', soundSheet),
           it(Icons.lock_outline_rounded, 'خصوصية الحساب', privacySheet),
           it(Icons.wifi_rounded, 'الدردشة عبر الإنترنت', chatSheet),
@@ -5975,7 +6088,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             IconButton(icon: const Icon(Icons.share_rounded), onPressed: () => sharePost(p)),
             if (p.from == me!.u) ...[
               const SizedBox(width: 4),
-              const Icon(Icons.visibility_outlined, size: 20),
+              const OrxEye(size: 20),
               const SizedBox(width: 4),
               Text('${vcount[p.id] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700)),
             ],
@@ -6039,34 +6152,59 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     ]);
   }
 
-  void notifSheet() {
-    final cs = Theme.of(context).colorScheme;
-    showModalBottomSheet<void>(
+  Future<void> notifSheet() async {
+    await loadNotifs();
+    if (!mounted) return;
+    String ago2(String iso) {
+      final d = DateTime.tryParse(iso)?.toLocal();
+      return d == null ? '' : T(ago(d));
+    }
+
+    final empty0 = reqIn.isEmpty && notifs.isEmpty;
+    await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (_) => SizedBox(
-        height: 300,
+        height: MediaQuery.of(context).size.height * .6,
         child: Column(children: [
           Text(T('الإشعارات'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           Expanded(
-            child: reqIn.isEmpty
+            child: empty0
                 ? empty(Icons.notifications_none_rounded, T('مفيش إشعارات'),
-                    T('إشعارات الرسائل والمتابعات والتعليقات هتظهر هنا قريباً'))
+                    T('إشعارات المتابعات هتظهر هنا'))
                 : ListView(children: [
-                    ListTile(
-                      leading: const Icon(Icons.person_add_alt_1_rounded),
-                      title: fw.Text(isEn ? '${reqIn.length} follow request(s)' : '${reqIn.length} طلب متابعة جديد'),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () {
-                        Navigator.pop(context);
-                        openPeople('requests');
-                      },
-                    ),
+                    if (reqIn.isNotEmpty)
+                      ListTile(
+                        leading: const Icon(Icons.person_add_alt_1_rounded),
+                        title: fw.Text(isEn ? '${reqIn.length} follow request(s)' : '${reqIn.length} طلب متابعة جديد'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () {
+                          Navigator.pop(context);
+                          openPeople('requests');
+                        },
+                      ),
+                    for (final n in notifs)
+                      ListTile(
+                        leading: Icon(n['kind'] == 'unfollow' ? Icons.person_remove_alt_1_rounded : Icons.person_add_alt_1_rounded,
+                            color: n['is_read'] == true ? null : Theme.of(context).colorScheme.primary),
+                        title: fw.Text(n['kind'] == 'unfollow'
+                            ? (isEn ? '@${n['from_u']} unfollowed you' : '@${n['from_u']} ألغى متابعتك')
+                            : (n['kind'] == 'request'
+                                ? (isEn ? '@${n['from_u']} requested to follow you' : '@${n['from_u']} طلب متابعتك')
+                                : (isEn ? '@${n['from_u']} started following you' : '@${n['from_u']} بدأ بمتابعتك'))),
+                        subtitle: fw.Text(ago2('${n['created_at']}')),
+                        onTap: () {
+                          Navigator.pop(context);
+                          openProf(n['from_u'] as String);
+                        },
+                      ),
                   ]),
           ),
         ]),
       ),
     );
+    markNotifsRead();
   }
 
   void searchSheet() {
@@ -6332,6 +6470,140 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     );
   }
 
+  static const kProCats = <String, String>{
+    'creator': 'صانع محتوى',
+    'business': 'نشاط تجاري',
+    'sports': 'رياضة',
+    'music': 'موسيقى',
+    'tech': 'تقنية',
+    'art': 'فن وتصميم',
+    'education': 'تعليم',
+    'entertainment': 'ترفيه',
+  };
+
+  String? catOf(String u) => u == me?.u ? myCat : pcat[u];
+
+  Future<void> loadCats(Iterable<String> us) async {
+    final need = us.where((u) => u != me?.u).toSet();
+    if (need.isEmpty || !netReady || !await cloud.ensure()) return;
+    try {
+      final r = await cloud.rest('GET', '/rest/v1/profiles?u=in.(${need.map(enc).join(',')})&select=u,category&limit=500');
+      if (r.$1 != 200 || r.$2 is! List || !mounted) return;
+      setState(() {
+        for (final x in r.$2 as List) {
+          final c = (x as Map)['category'] as String?;
+          if (c == null) {
+            pcat.remove(x['u']);
+          } else {
+            pcat[x['u'] as String] = c;
+          }
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> loadPro() async {
+    if (me == null || !netReady || !await cloud.ensure()) return;
+    try {
+      final r = await cloud.rest('GET', '/rest/v1/profiles?u=eq.${enc(me!.u)}&select=category&limit=1');
+      if (r.$1 == 200 && r.$2 is List && (r.$2 as List).isNotEmpty && mounted) {
+        setState(() => myCat = ((r.$2 as List).first as Map)['category'] as String?);
+      }
+      if (myCat != null) {
+        final s2 = await cloud.rest('POST', '/rest/v1/rpc/profile_stats', body: {});
+        if (s2.$1 == 200 && s2.$2 is List && (s2.$2 as List).isNotEmpty && mounted) {
+          final m = (s2.$2 as List).first as Map;
+          setState(() {
+            proVisits = (m['visits_30d'] as num?)?.toInt() ?? 0;
+            proVisitors = (m['visitors_30d'] as num?)?.toInt() ?? 0;
+            proVisitsAll = (m['visits_all'] as num?)?.toInt() ?? 0;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setCat(String? key) async {
+    final r = await cloud.rest('POST', '/rest/v1/rpc/set_profile_category', body: {'p_cat': key});
+    if (!mounted) return;
+    if (r.$1 >= 200 && r.$1 < 300) {
+      setState(() => myCat = key);
+      snack(key == null ? 'رجع حسابك شخصي' : 'تم تحويل حسابك إلى حساب احترافي');
+      loadPro();
+    } else {
+      snack('تعذر تغيير التخصص');
+    }
+  }
+
+  void proSheet() => sheet('تخصص الحساب', (c, st) => [
+        const Text('اختر تخصص صفحتك لتظهر للناس وتشوف إحصائيات المشاهدات والزيارات.'),
+        const SizedBox(height: 6),
+        for (final e in kProCats.entries)
+          ListTile(
+            leading: Icon(myCat == e.key ? Icons.radio_button_checked : Icons.radio_button_off),
+            title: Text(e.value),
+            onTap: () {
+              Navigator.pop(context);
+              setCat(e.key);
+            },
+          ),
+        ListTile(
+          leading: Icon(myCat == null ? Icons.radio_button_checked : Icons.radio_button_off),
+          title: const Text('حساب شخصي'),
+          onTap: () {
+            Navigator.pop(context);
+            setCat(null);
+          },
+        ),
+      ]);
+
+  Widget proSection() {
+    final cs = Theme.of(context).colorScheme;
+    if (myCat == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: OutlinedButton.icon(
+          onPressed: proSheet,
+          icon: const Icon(Icons.insights_outlined),
+          label: const Text('التحويل إلى حساب احترافي'),
+        ),
+      );
+    }
+    final views = vcount.values.fold<int>(0, (a, b) => a + b) + sviews.values.fold<int>(0, (a, b) => a + b);
+    Widget cell(IconData? i, Widget? w, int n, String label) => Expanded(
+          child: Column(children: [
+            w ?? Icon(i, size: 22, color: cs.primary),
+            const SizedBox(height: 4),
+            Text('$n', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+          ]),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark ? kNavyCard : cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(children: [
+          Row(children: [
+            Icon(Icons.insights_rounded, color: cs.primary),
+            const SizedBox(width: 8),
+            Expanded(child: fw.Text('${T('حساب احترافي')} • ${T(kProCats[myCat] ?? myCat!)}', style: const TextStyle(fontWeight: FontWeight.w800))),
+            TextButton(onPressed: proSheet, child: const Text('تغيير')),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            cell(null, OrxEye(size: 22, color: cs.primary), views, 'مشاهدات المحتوى'),
+            cell(Icons.touch_app_outlined, null, proVisits, 'زيارات الملف (30 يوم)'),
+            cell(Icons.groups_2_outlined, null, proVisitors, 'زوار مختلفون (30 يوم)'),
+          ]),
+        ]),
+      ),
+    );
+  }
+
   Widget profileView(String u) {
     final cs = Theme.of(context).colorScheme;
     final mine = u == me!.u;
@@ -6377,6 +6649,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           nm(u, p.n, st: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
           Text('\u200e@$u', style: TextStyle(color: cs.onSurfaceVariant)),
           friendTag(u),
+          if (catOf(u) != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.verified_outlined, size: 14, color: cs.primary),
+                const SizedBox(width: 4),
+                Text(kProCats[catOf(u)] ?? catOf(u)!, style: TextStyle(fontSize: 12, color: cs.primary, fontWeight: FontWeight.w700)),
+              ]),
+            ),
           if ((p.bio ?? '').isNotEmpty) ...[const SizedBox(height: 6), fw.Text(p.bio!)],
           if (mine) ...[
             const SizedBox(height: 8),
@@ -6453,6 +6734,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 ),
               ]),
       ),
+      if (mine) proSection(),
       const Divider(height: 1),
       if (!mine && !isFol && pinfo[u]?['is_private'] == true)
         Padding(
@@ -6718,7 +7000,7 @@ class SparkIcon extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: g > 0 ? [BoxShadow(color: on.withOpacity(0.6 * g), blurRadius: 16 * g, spreadRadius: 2 * g)] : null,
             ),
-            child: Icon(liked ? Icons.bolt_rounded : Icons.bolt_outlined, size: size, color: Color.lerp(offc, on, g)),
+            child: OrxBolt(size: size, color: Color.lerp(offc, on, g)!, filled: liked),
           ),
         );
       },
@@ -7948,7 +8230,7 @@ class _CommunityPageState extends State<CommunityPage> {
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Row(children: [
-                  Icon(liked ? Icons.bolt_rounded : Icons.bolt_outlined, color: liked ? cs.primary : null),
+                  OrxBolt(size: 24, color: liked ? cs.primary : cs.onSurfaceVariant, filled: liked),
                   const SizedBox(width: 4),
                   fw.Text('$n'),
                 ]),
@@ -8396,4 +8678,113 @@ class _ManageCommunityPageState extends State<ManageCommunityPage> {
           body: TabBarView(children: [requestsTab(), membersTab(), settingsTab()]),
         ),
       );
+}
+
+// ---------------------------- أيقونات ORX ----------------------------
+class OrxEye extends StatelessWidget {
+  final double size;
+  final Color? color;
+  const OrxEye({super.key, this.size = 24, this.color});
+  @override
+  Widget build(BuildContext c) => CustomPaint(
+        size: Size.square(size),
+        painter: _EyePainter(color ?? Theme.of(c).colorScheme.onSurfaceVariant),
+      );
+}
+
+class _EyePainter extends CustomPainter {
+  final Color color;
+  _EyePainter(this.color);
+  @override
+  void paint(Canvas c, Size s) {
+    final w = s.width, h = s.height;
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.085
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = color;
+    final path = Path()
+      ..moveTo(w * .04, h * .5)
+      ..quadraticBezierTo(w * .5, h * -.08, w * .96, h * .5)
+      ..quadraticBezierTo(w * .5, h * 1.08, w * .04, h * .5)
+      ..close();
+    c.drawPath(path, stroke);
+    c.drawCircle(Offset(w * .5, h * .5), w * .19, Paint()..color = color);
+    c.drawCircle(Offset(w * .56, h * .43), w * .055, Paint()..color = Colors.white.withAlpha(220));
+  }
+
+  @override
+  bool shouldRepaint(_EyePainter o) => o.color != color;
+}
+
+class OrxBolt extends StatelessWidget {
+  final double size;
+  final Color color;
+  final bool filled;
+  const OrxBolt({super.key, this.size = 24, required this.color, this.filled = true});
+  @override
+  Widget build(BuildContext c) => CustomPaint(size: Size.square(size), painter: _BoltPainter(color, filled));
+}
+
+class _BoltPainter extends CustomPainter {
+  final Color color;
+  final bool filled;
+  _BoltPainter(this.color, this.filled);
+  @override
+  void paint(Canvas c, Size s) {
+    final w = s.width, h = s.height;
+    final path = Path()
+      ..moveTo(w * .60, h * .02)
+      ..lineTo(w * .20, h * .56)
+      ..lineTo(w * .47, h * .56)
+      ..lineTo(w * .38, h * .98)
+      ..lineTo(w * .82, h * .40)
+      ..lineTo(w * .54, h * .40)
+      ..close();
+    if (filled) {
+      c.drawPath(path, Paint()..color = color);
+      c.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = w * .05
+            ..strokeJoin = StrokeJoin.round
+            ..color = color);
+    } else {
+      c.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = w * .08
+            ..strokeJoin = StrokeJoin.round
+            ..strokeCap = StrokeCap.round
+            ..color = color);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BoltPainter o) => o.color != color || o.filled != filled;
+}
+
+class _DashRingPainter extends CustomPainter {
+  final Color color;
+  _DashRingPainter(this.color);
+  @override
+  void paint(Canvas c, Size s) {
+    final r = s.shortestSide / 2 - 2;
+    final rect = Rect.fromCircle(center: s.center(Offset.zero), radius: r);
+    final p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round
+      ..color = color;
+    const n = 18;
+    for (var i = 0; i < n; i++) {
+      c.drawArc(rect, 2 * pi * i / n, 2 * pi / n - 0.12, false, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashRingPainter o) => o.color != color;
 }
