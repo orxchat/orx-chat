@@ -125,7 +125,7 @@ const _en = <String, String>{
   'زوار مختلفون (30 يوم)': 'Unique visitors (30 days)',
   'تم تحويل حسابك إلى حساب احترافي': 'Your account is now professional',
   'رجع حسابك شخصي': 'Your account is personal again',
-  'تعذر تغيير التخصص': 'Couldn't change the account type',
+  'تعذر تغيير التخصص': "Couldn't change the account type",
   'إشعارات المتابعات هتظهر هنا': 'Follow notifications will show up here',
   'أمس': 'Yesterday',
   'الإثنين': 'Mon',
