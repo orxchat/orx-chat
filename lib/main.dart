@@ -3022,13 +3022,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   tooltip: T('بحث'), icon: const Icon(Icons.search_rounded), onPressed: searchSheet),
             if (view == 'home')
               IconButton(
-                  tooltip: T('بحث عن أجهزة قريبة'),
-                  icon: const Icon(Icons.bluetooth_searching_rounded),
-                  onPressed: () => setState(() => view = 'near')),
-            if (view == 'home')
-              IconButton(
-                  tooltip: T('إضافة صديق'),
-                  icon: const Icon(Icons.person_add_alt_1_rounded),
+                  tooltip: T('رسالة جديدة'),
+                  icon: const Icon(Icons.edit_square),
                   onPressed: findFriend),
             if (owner)
               IconButton(
@@ -3170,7 +3165,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final pl = contacts.values.where((p) => p.u != me!.u && !blocked.contains(p.u) && (hit(p.n) || hit(p.u))).toList();
     return ListView(padding: const EdgeInsets.only(bottom: 12), children: [
       chatTabs(),
-      storiesBar(),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
         child: TextField(
