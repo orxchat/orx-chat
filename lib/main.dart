@@ -11,6 +11,7 @@ import 'package:flutter/widgets.dart' as fw show Text;
 import 'package:flutter/services.dart' show Clipboard, ClipboardData, HapticFeedback, MethodChannel;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart' show GoogleFonts;
 import 'package:nearby_connections/nearby_connections.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -30,6 +31,46 @@ const storyColors = [
   Color(0xFFEF6C00),
   Color(0xFF1565C0),
 ];
+
+// خلفيات القصص النصية (تدرّجات) وخطوطها
+const kStoryBgs = <List<Color>>[
+  [Color(0xFF0E7C66), Color(0xFF14C8E8)],
+  [Color(0xFF6A1B9A), Color(0xFFEC4899)],
+  [Color(0xFFC2185B), Color(0xFFFF8A65)],
+  [Color(0xFFEF6C00), Color(0xFFFFCA28)],
+  [Color(0xFF1565C0), Color(0xFF7C3AED)],
+  [Color(0xFF0B1022), Color(0xFF3B2FD6)],
+  [Color(0xFF111111), Color(0xFF434343)],
+  [Color(0xFF2E7D32), Color(0xFFA5D6A7)],
+  [Color(0xFF880E4F), Color(0xFF311B92)],
+  [Color(0xFFFFB300), Color(0xFFFF6F00)],
+];
+
+class StoryFont {
+  final String label, family;
+  final bool ar;
+  const StoryFont(this.label, this.family, this.ar);
+}
+
+const kStoryFonts = <StoryFont>[
+  StoryFont('Cairo', 'Cairo', true),
+  StoryFont('Tajawal', 'Tajawal', true),
+  StoryFont('Amiri', 'Amiri', true),
+  StoryFont('Lalezar', 'Lalezar', true),
+  StoryFont('Reem Kufi', 'Reem Kufi', true),
+  StoryFont('Aref Ruqaa', 'Aref Ruqaa', true),
+  StoryFont('Poppins', 'Poppins', false),
+  StoryFont('Pacifico', 'Pacifico', false),
+  StoryFont('Bebas Neue', 'Bebas Neue', false),
+  StoryFont('Playfair', 'Playfair Display', false),
+  StoryFont('Caveat', 'Caveat', false),
+];
+
+TextStyle storyTextStyle(int f, {double size = 28}) {
+  final fo = kStoryFonts[f.clamp(0, kStoryFonts.length - 1)];
+  return GoogleFonts.getFont(fo.family,
+      textStyle: TextStyle(color: Colors.white, fontSize: size, fontWeight: FontWeight.w700, height: 1.3));
+}
 
 const accents = [
   Color(0xFF14C8E8),
@@ -105,6 +146,11 @@ const _en = <String, String>{
   'حسابي': 'Profile',
   'المظهر': 'Settings',
   'أصوات الإشعارات': 'Notification sounds',
+  'اكتب شيئاً...': "Write something...",
+  'استرجاع المحادثات': "Restore chats",
+  'جارٍ استرجاع المحادثات...': "Restoring chats...",
+  'تعذر الاتصال، جرّب لاحقاً': "Couldn't connect, try later",
+  'لا توجد رسائل جديدة للاسترجاع': "No new messages to restore",
   'شكل الستوري': 'Story ring style',
   'كلاسيك': 'Classic',
   'نيون': 'Neon',
@@ -1188,15 +1234,23 @@ String ago(DateTime d) {
 
 class Story {
   final String from;
-  final String? text, img, sid;
+  final String? text, img, sid, st; // st = "لون.خط" لقصص النص المخصّصة
   final DateTime at;
-  Story(this.from, {this.text, this.img, this.sid, DateTime? at}) : at = at ?? DateTime.now();
+  Story(this.from, {this.text, this.img, this.sid, this.st, DateTime? at}) : at = at ?? DateTime.now();
+  (int, int)? get sty {
+    final p = (st ?? '').split('.');
+    if (p.length != 2) return null;
+    final c = int.tryParse(p[0]), f = int.tryParse(p[1]);
+    if (c == null || f == null) return null;
+    return (c.clamp(0, kStoryBgs.length - 1), f.clamp(0, kStoryFonts.length - 1));
+  }
+
   bool get live => DateTime.now().difference(at).inHours < 24;
   Color get color =>
       storyColors[(text ?? '').codeUnits.fold(0, (a, b) => a + b) % storyColors.length];
-  Map toJson() => {'f': from, 't': text, 'i': img, 'x': sid, 'a': at.millisecondsSinceEpoch};
+  Map toJson() => {'f': from, 't': text, 'i': img, 'x': sid, 'z': st, 'a': at.millisecondsSinceEpoch};
   factory Story.fromJson(Map j) =>
-      Story(j['f'], text: j['t'], img: j['i'], sid: j['x'], at: DateTime.fromMillisecondsSinceEpoch(j['a']));
+      Story(j['f'], text: j['t'], img: j['i'], sid: j['x'], st: j['z'], at: DateTime.fromMillisecondsSinceEpoch(j['a']));
 }
 
 class StoryView extends StatefulWidget {
@@ -1255,12 +1309,19 @@ class _StoryViewState extends State<StoryView> {
                 child: s.img != null
                     ? Center(child: Image.file(File(s.img!)))
                     : Container(
-                        color: s.color,
+                        color: s.sty != null ? null : s.color,
+                        decoration: s.sty == null
+                            ? null
+                            : BoxDecoration(
+                                gradient: LinearGradient(
+                                    colors: kStoryBgs[s.sty!.$1], begin: Alignment.topLeft, end: Alignment.bottomRight)),
                         alignment: Alignment.center,
                         padding: const EdgeInsets.all(24),
                         child: fw.Text(s.text!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+                            style: s.sty != null
+                                ? storyTextStyle(s.sty!.$2)
+                                : const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
                       ),
               ),
           ],
@@ -1370,6 +1431,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         myStoryLikes.addAll(List<String>.from((j['myStoryLikes'] as List?) ?? []));
         viewed.addAll(List<String>.from((j['viewed'] as List?) ?? []));
         ringStyle = ((j['ring'] as num?)?.toInt() ?? 0).clamp(0, 3);
+        backedUp
+          ..clear()
+          ..addAll(List<String>.from((j['bk'] as List?) ?? []));
         final ri = j['readIn'];
         if (ri is Map) {
           for (final e in ri.entries) {
@@ -1424,6 +1488,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         'viewed': viewed.toList(),
         'readIn': readIn,
         'ring': ringStyle,
+        'bk': backedUp.toList(),
         'lang': langCode.value,
         'cloud': {'rt': cloud.rt, 'uid': cloud.uid, 'avSrc': cavSrc, 'av': cav, 'last': lastMsgId},
       }));
@@ -2202,7 +2267,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           setState(() => stories.add(Story(u, img: pth)));
         }
       } else {
-        setState(() => stories.add(Story(u, text: j['t'])));
+        setState(() => stories.add(Story(u, text: j['t'], st: j['z'] as String?)));
       }
       save();
     } else if (k == 'nf') {
@@ -2392,7 +2457,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (s.img != null) {
       await sendFile(id, {'k': 'f', 'w': 's'}, s.img!);
     } else {
-      await sendJ(id, {'k': 's', 't': s.text});
+      await sendJ(id, {'k': 's', 't': s.text, if (s.st != null) 'z': s.st});
     }
   }
 
@@ -2429,8 +2494,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         media = 's/${cloud.uid}_${DateTime.now().microsecondsSinceEpoch}.jpg';
         ok = await cloud.upload(media, await File(s.img!).readAsBytes(), 'image/jpeg');
       }
-      if (ok && await srvInsert('stories', {'id': sid, 'author': me!.u, 'body': s.text, 'media': media})) {
-        setState(() => stories.add(Story(me!.u, text: s.text, img: s.img, sid: sid, at: s.at)));
+      if (ok && await srvInsert('stories', {'id': sid, 'author': me!.u, 'body': s.text, 'media': media, if (s.st != null) 'style': s.st})) {
+        setState(() => stories.add(Story(me!.u, text: s.text, img: s.img, sid: sid, st: s.st, at: s.at)));
         save();
         return;
       }
@@ -2444,20 +2509,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   Future<void> textStory() async {
-    final t = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('قصة نصية'),
-        content: TextField(controller: t, maxLines: 4, maxLength: 200, autofocus: true),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('إلغاء')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('نشر')),
-        ],
-      ),
-    );
-    final txt = t.text.trim();
-    if (ok == true && txt.isNotEmpty) publish(Story(me!.u, text: txt));
+    final r = await Navigator.push<(String, int, int)>(
+        context, MaterialPageRoute(builder: (_) => const StoryComposerPage()));
+    if (r == null || !mounted) return;
+    publish(Story(me!.u, text: r.$1, st: '${r.$2}.${r.$3}'));
   }
 
   Future<void> imgStory() async {
@@ -2726,6 +2781,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     recTimer?.cancel();
     poll?.cancel();
     socialTimer?.cancel();
+    backupTimer?.cancel();
     reelCtl.dispose();
     rec.dispose();
     player.dispose();
@@ -3022,8 +3078,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   tooltip: T('بحث'), icon: const Icon(Icons.search_rounded), onPressed: searchSheet),
             if (view == 'home')
               IconButton(
-                  tooltip: T('رسالة جديدة'),
-                  icon: const Icon(Icons.edit_square),
+                  tooltip: T('بحث عن أجهزة قريبة'),
+                  icon: const Icon(Icons.bluetooth_searching_rounded),
+                  onPressed: () => setState(() => view = 'near')),
+            if (view == 'home')
+              IconButton(
+                  tooltip: T('إضافة صديق'),
+                  icon: const Icon(Icons.person_add_alt_1_rounded),
                   onPressed: findFriend),
             if (owner)
               IconButton(
@@ -3165,6 +3226,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final pl = contacts.values.where((p) => p.u != me!.u && !blocked.contains(p.u) && (hit(p.n) || hit(p.u))).toList();
     return ListView(padding: const EdgeInsets.only(bottom: 12), children: [
       chatTabs(),
+      storiesBar(),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
         child: TextField(
@@ -3336,6 +3398,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   String? cavSrc, cav;
   int lastMsgId = 0;
   Timer? poll;
+  Timer? backupTimer;
+  final backedUp = <String>{};
+  bool backingUp = false, restoredOnce = false;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState st) {
@@ -3345,6 +3410,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       poll?.cancel();
       socialTimer?.cancel();
       statsTimer?.cancel();
+      backupTimer?.cancel();
     }
   }
 
@@ -3502,7 +3568,107 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     socialTimer = Timer.periodic(const Duration(seconds: 45), (_) => pullSocial());
     statsTimer?.cancel();
     statsTimer = Timer.periodic(const Duration(seconds: 12), (_) => refreshStats());
+    backupTimer?.cancel();
+    backupTimer = Timer.periodic(const Duration(seconds: 30), (_) => backupChats());
+    if (msgs.isEmpty && !restoredOnce) {
+      restoredOnce = true;
+      restoreChats();
+    }
     pullSocial();
+  }
+
+  // ---- نسخة احتياطية مشفّرة للمحادثات النصية على Supabase (المفتاح مشتق من هويتك، السيرفر مش بيقدر يقراها) ----
+  Future<SecretKey> bkKey() async {
+    final h = await Sha256().hash([...base64Decode(me!.sd!), ...utf8.encode('orx-chat-backup')]);
+    return SecretKey(h.bytes);
+  }
+
+  Future<Map?> bkDec(String b) async {
+    try {
+      final p = await aes.decrypt(SecretBox.fromConcatenation(base64Decode(b), nonceLength: 12, macLength: 16),
+          secretKey: await bkKey());
+      return jsonDecode(utf8.decode(p)) as Map;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> backupChats() async {
+    if (backingUp || me == null || me!.sd == null || !netReady) return;
+    backingUp = true;
+    try {
+      if (!await cloud.ensure()) return;
+      final todo = msgs
+          .where((m) => (m.t ?? '').isNotEmpty && m.img == null && m.aud == null && !backedUp.contains(m.i))
+          .take(100)
+          .toList();
+      if (todo.isEmpty) return;
+      final key = await bkKey();
+      final rows = <Map<String, dynamic>>[];
+      for (final m in todo) {
+        final box = await aes.encrypt(utf8.encode(jsonEncode({'c': m.c, 's': m.s, 'i': m.i, 't': m.t})), secretKey: key);
+        rows.add({'mid': m.i, 'blob': base64Encode(box.concatenation())});
+      }
+      final r = await cloud.rest('POST', '/rest/v1/chat_backup?on_conflict=uid,mid',
+          headers: {'Prefer': 'resolution=ignore-duplicates,return=minimal'}, body: rows);
+      if (r.$1 >= 200 && r.$1 < 300) {
+        backedUp.addAll(todo.map((m) => m.i));
+        save();
+      }
+    } catch (_) {
+    } finally {
+      backingUp = false;
+    }
+  }
+
+  int _msgTs(String id) => id.length < 16 ? -1 : (int.tryParse(id.substring(id.length - 16)) ?? -1);
+
+  /// يرجع عدد الرسائل المسترجعة، أو -1 لو مفيش اتصال
+  Future<int> restoreChats() async {
+    if (me?.sd == null || !netReady || !await cloud.ensure()) return -1;
+    final before = <String, int>{for (final m in msgs) m.c: unreadOf(m.c)};
+    final have = msgs.map((m) => m.i).toSet();
+    var added = 0, off = 0;
+    while (true) {
+      final r = await cloud.rest('GET', '/rest/v1/chat_backup?select=mid,blob&order=created_at.asc&limit=500&offset=$off');
+      if (r.$1 != 200 || r.$2 is! List) break;
+      final l = r.$2 as List;
+      for (final e in l) {
+        final m = Map.from(e as Map);
+        final mid = m['mid'] as String;
+        backedUp.add(mid);
+        if (have.contains(mid)) continue;
+        final j = await bkDec(m['blob'] as String);
+        if (j == null) continue;
+        msgs.add(Msg(j['c'] as String, j['s'] as String, j['i'] as String, t: j['t'] as String?));
+        have.add(mid);
+        added++;
+      }
+      if (l.length < 500) break;
+      off += 500;
+    }
+    if (added > 0 && mounted) {
+      if (msgs.every((m) => _msgTs(m.i) > 0)) {
+        final sorted = [...msgs]..sort((a, b) => _msgTs(a.i).compareTo(_msgTs(b.i)));
+        msgs
+          ..clear()
+          ..addAll(sorted);
+      }
+      setState(() {
+        for (final c in msgs.map((m) => m.c).toSet()) {
+          readIn[c] = incomingCount(c) - (before[c] ?? 0);
+        }
+      });
+      save();
+    }
+    return added;
+  }
+
+  Future<void> restoreChatsUi() async {
+    snack('جارٍ استرجاع المحادثات...');
+    final n = await restoreChats();
+    if (!mounted) return;
+    snack(n < 0 ? 'تعذر الاتصال، جرّب لاحقاً' : (n == 0 ? 'لا توجد رسائل جديدة للاسترجاع' : 'تم استرجاع $n رسالة'));
   }
 
   Future<void> cloudSend(String u, Map j) async {
@@ -3868,6 +4034,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           if (stories.any((s) => s.sid == m['id'])) continue;
           stories.add(Story(m['author'] as String,
               text: m['body'] as String?,
+              st: m['style'] as String?,
               img: g.$2,
               sid: m['id'] as String,
               at: DateTime.parse(m['created_at'] as String).toLocal()));
@@ -4368,6 +4535,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     poll?.cancel();
     socialTimer?.cancel();
     statsTimer?.cancel();
+    backupTimer?.cancel();
+    backedUp.clear();
+    readIn.clear();
+    restoredOnce = false;
     try {
       Nearby().stopAllEndpoints();
       Nearby().stopAdvertising();
@@ -5708,6 +5879,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           it(Icons.groups_2_outlined, 'المجتمعات', openCommunities),
           it(Icons.auto_awesome, 'ORX Plus', plusSheet),
           it(Icons.motion_photos_on_outlined, 'شكل الستوري', ringSheet),
+          it(Icons.cloud_download_outlined, 'استرجاع المحادثات', restoreChatsUi),
           it(Icons.notifications_active_outlined, 'أصوات الإشعارات', soundSheet),
           it(Icons.lock_outline_rounded, 'خصوصية الحساب', privacySheet),
           it(Icons.wifi_rounded, 'الدردشة عبر الإنترنت', chatSheet),
@@ -7774,7 +7946,7 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
               decoration: InputDecoration(labelText: T('الوصف'), border: const OutlineInputBorder())),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: cat,
+            initialValue: cat,
             decoration: InputDecoration(labelText: T('الفئة'), border: const OutlineInputBorder()),
             items: [for (final e in kCommCats.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
             onChanged: (v) => setState(() => cat = v ?? cat),
@@ -8781,4 +8953,137 @@ class _DashRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DashRingPainter o) => o.color != color;
+}
+
+// ---------------------------- منشئ القصص النصية ----------------------------
+class StoryComposerPage extends StatefulWidget {
+  const StoryComposerPage({super.key});
+  @override
+  State<StoryComposerPage> createState() => _StoryComposerPageState();
+}
+
+class _StoryComposerPageState extends State<StoryComposerPage> {
+  final t = TextEditingController();
+  int bg = 0, font = 0;
+
+  bool get arabicList => t.text.trim().isEmpty || RegExp(r'[\u0600-\u06FF]').hasMatch(t.text);
+  List<int> get fonts => [
+        for (var i = 0; i < kStoryFonts.length; i++)
+          if (kStoryFonts[i].ar == arabicList) i,
+      ];
+
+  @override
+  void dispose() {
+    t.dispose();
+    super.dispose();
+  }
+
+  void onText() {
+    final l = fonts;
+    if (!l.contains(font)) font = l.first;
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext c) {
+    final l = fonts;
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      body: Container(
+        decoration: BoxDecoration(
+            gradient: LinearGradient(colors: kStoryBgs[bg], begin: Alignment.topLeft, end: Alignment.bottomRight)),
+        child: SafeArea(
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(children: [
+                IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(c)),
+                const Spacer(),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87),
+                  onPressed: () {
+                    final txt = t.text.trim();
+                    if (txt.isEmpty) return;
+                    Navigator.pop(c, (txt, bg, font));
+                  },
+                  child: const Text('نشر'),
+                ),
+              ]),
+            ),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: TextField(
+                    controller: t,
+                    autofocus: true,
+                    maxLength: 200,
+                    maxLines: null,
+                    textAlign: TextAlign.center,
+                    style: storyTextStyle(font),
+                    cursorColor: Colors.white,
+                    onChanged: (_) => onText(),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      counterText: '',
+                      hintText: T('اكتب شيئاً...'),
+                      hintStyle: storyTextStyle(font).copyWith(color: Colors.white54),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 46,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                children: [
+                  for (var i = 0; i < l.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+                      child: ChoiceChip(
+                        showCheckmark: false,
+                        selected: font == l[i],
+                        onSelected: (_) => setState(() => font = l[i]),
+                        label: fw.Text(arabicList ? 'أبجد ${kStoryFonts[l[i]].label}' : 'Aa ${kStoryFonts[l[i]].label}',
+                            style: storyTextStyle(l[i], size: 15).copyWith(
+                                color: font == l[i] ? Colors.black87 : Colors.white)),
+                        backgroundColor: Colors.black26,
+                        selectedColor: Colors.white,
+                        side: BorderSide.none,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 56,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                children: [
+                  for (var i = 0; i < kStoryBgs.length; i++)
+                    GestureDetector(
+                      onTap: () => setState(() => bg = i),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 9),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(colors: kStoryBgs[i], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                          border: Border.all(color: Colors.white, width: bg == i ? 3 : 1),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+          ]),
+        ),
+      ),
+    );
+  }
 }
