@@ -146,6 +146,36 @@ const _en = <String, String>{
   'حسابي': 'Profile',
   'المظهر': 'Settings',
   'أصوات الإشعارات': 'Notification sounds',
+  'مساعدك الذكي للكتابة والتلخيص والأفكار': "Your smart assistant for writing, summaries and ideas",
+  'ORX AI يحتاج اتصالاً بالإنترنت وحساباً مسجّلاً': "ORX AI needs an internet connection and a signed-in account",
+  'اكتب منشوراً': "Write a post",
+  'حسّن رسالتي': "Improve my message",
+  'لخّص نصاً': "Summarize a text",
+  'اقترح أفكاراً': "Suggest ideas",
+  'اكتب لي منشوراً عن: ': "Write me a post about: ",
+  'حسّن هذه الرسالة وصحّحها: ': "Improve and proofread this message: ",
+  'لخّص لي هذا النص: ': "Summarize this text for me: ",
+  'اقترح لي 5 أفكار لمحتوى أو مجتمعات عن: ': "Suggest 5 content or community ideas about: ",
+  'مرحباً، أنا ORX AI': "Hi, I am ORX AI",
+  'أكتب معك، أحسّن رسائلك، ألخّص، وأقترح أفكاراً. اسألني أي شيء.': "I write with you, improve your messages, summarize and suggest ideas. Ask me anything.",
+  'المحادثات السابقة': "Previous chats",
+  'محادثة جديدة': "New chat",
+  'لا توجد محادثات سابقة': "No previous chats",
+  'تعذر تحميل المحادثة': "Couldn't load the chat",
+  'تعذر تحميل المحادثات السابقة': "Couldn't load previous chats",
+  'اكتب رسالتك لـ ORX AI...': "Message ORX AI...",
+  'ORX AI يكتب...': "ORX AI is typing...",
+  'لا يوجد اتصال بالإنترنت. تأكد من الشبكة وحاول مرة أخرى.': "No internet connection. Check your network and try again.",
+  'انتهت مهلة الطلب. حاول مرة أخرى.': "The request timed out. Try again.",
+  'وصلت للحد اليومي لاستخدام ORX AI. جرّب غداً.': "You've reached today's ORX AI limit. Try again tomorrow.",
+  'طلبات كثيرة في وقت قصير. انتظر قليلاً وحاول مرة أخرى.': "Too many requests in a short time. Wait a moment and try again.",
+  'ORX AI غير مُفعّل بعد من جهة الخادم.': "ORX AI is not enabled on the server yet.",
+  'الرسالة طويلة جداً. اختصرها وحاول مرة أخرى.': "The message is too long. Shorten it and try again.",
+  'المحادثة غير موجودة. ابدأ محادثة جديدة.': "Chat not found. Start a new chat.",
+  'انتهت جلستك. أعد تسجيل الدخول.': "Your session expired. Sign in again.",
+  'خدمة ORX AI غير منشورة على الخادم بعد.': "The ORX AI service is not deployed on the server yet.",
+  'المساعد مشغول الآن. حاول بعد لحظات.': "The assistant is busy. Try again in a moment.",
+  'تعذر الحصول على رد الآن. حاول مرة أخرى.': "Couldn't get a reply right now. Try again.",
   'اكتب شيئاً...': "Write something...",
   'استرجاع المحادثات': "Restore chats",
   'جارٍ استرجاع المحادثات...': "Restoring chats...",
@@ -931,6 +961,8 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
 }
 
 const sbUrl = 'https://leotxhvwrbuqjssdyqav.supabase.co';
+// اسم الـ Edge Function الخاصة بـ ORX AI في Supabase (من رابطها: /functions/v1/<الاسم>)
+const kAiFn = 'dynamic-api';
 const sbKey = 'sb_publishable_fjjlcGPmqjvJN9iXDsSvVQ_OHOxCLfo';
 
 /// Minimal Supabase client (auth + REST + storage) over dart:io, no extra packages.
@@ -3244,6 +3276,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ),
         ),
       ),
+      if (qs.isEmpty || 'orx ai'.contains(qs)) aiTile(),
       if (groups[me!.u] == null && qs.isEmpty)
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
@@ -5876,6 +5909,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           it(Icons.chat_bubble_outline_rounded, 'المحادثات', goHome),
           it(Icons.palette_outlined, 'المظهر', themeSheet),
           it(Icons.language_rounded, 'اللغة', langSheet),
+          it(Icons.smart_toy_outlined, 'ORX AI', openAi),
           it(Icons.groups_2_outlined, 'المجتمعات', openCommunities),
           it(Icons.auto_awesome, 'ORX Plus', plusSheet),
           it(Icons.motion_photos_on_outlined, 'شكل الستوري', ringSheet),
@@ -5956,6 +5990,50 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ),
         ),
       );
+
+  Future<void> openAi() async {
+    if (me == null || !netReady || !await cloud.ensure()) {
+      snack('ORX AI يحتاج اتصالاً بالإنترنت وحساباً مسجّلاً');
+      return;
+    }
+    if (!mounted) return;
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => AiChatPage(cloud: cloud)));
+  }
+
+  Widget aiTile() {
+    final cs = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      child: Material(
+        color: dark ? kNavyCard : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: openAi,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [kBubbleA, kBubbleB])),
+                child: const Icon(Icons.auto_awesome, color: Colors.white),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('ORX AI', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text('مساعدك الذكي للكتابة والتلخيص والأفكار', style: TextStyle(color: cs.onSurfaceVariant)),
+                ]),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> openCommunities() async {
     if (me == null || !netReady || !await cloud.ensure()) {
@@ -9084,6 +9162,388 @@ class _StoryComposerPageState extends State<StoryComposerPage> {
           ]),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------- ORX AI ----------------------------
+class AiMsg {
+  final String role, text;
+  final bool error;
+  AiMsg(this.role, this.text, {this.error = false});
+}
+
+bool _aiRtl(String s) => RegExp(r'[\u0600-\u06FF]').hasMatch(s);
+
+class AiChatPage extends StatefulWidget {
+  final Cloud cloud;
+  const AiChatPage({super.key, required this.cloud});
+  @override
+  State<AiChatPage> createState() => _AiChatPageState();
+}
+
+class _AiChatPageState extends State<AiChatPage> {
+  final msgs = <AiMsg>[];
+  final tc = TextEditingController();
+  final sc = ScrollController();
+  String? chatId;
+  bool sending = false, loading = true;
+  String? lastUser;
+
+  static const _sugg = [
+    (Icons.edit_note_rounded, 'اكتب منشوراً', 'اكتب لي منشوراً عن: '),
+    (Icons.auto_fix_high_rounded, 'حسّن رسالتي', 'حسّن هذه الرسالة وصحّحها: '),
+    (Icons.summarize_outlined, 'لخّص نصاً', 'لخّص لي هذا النص: '),
+    (Icons.lightbulb_outline_rounded, 'اقترح أفكاراً', 'اقترح لي 5 أفكار لمحتوى أو مجتمعات عن: '),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    loadLatest();
+  }
+
+  @override
+  void dispose() {
+    tc.dispose();
+    sc.dispose();
+    super.dispose();
+  }
+
+  void snack(String t) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+
+  void toBottom() => WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (sc.hasClients) {
+          sc.animateTo(sc.position.maxScrollExtent, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+        }
+      });
+
+  Future<void> loadLatest() async {
+    final r = await widget.cloud.rest('GET', '/rest/v1/ai_chats?select=id&order=updated_at.desc&limit=1');
+    if (r.$1 == 200 && r.$2 is List && (r.$2 as List).isNotEmpty) {
+      await openChat(((r.$2 as List).first as Map)['id'] as String);
+    }
+    if (mounted) setState(() => loading = false);
+  }
+
+  Future<void> openChat(String id) async {
+    final r = await widget.cloud.rest('GET', '/rest/v1/ai_messages?chat_id=eq.$id&select=role,content&order=id.asc&limit=200');
+    if (!mounted) return;
+    if (r.$1 == 200 && r.$2 is List) {
+      setState(() {
+        chatId = id;
+        msgs
+          ..clear()
+          ..addAll([for (final e in r.$2 as List) AiMsg((e as Map)['role'] as String, e['content'] as String)]);
+      });
+      toBottom();
+    } else {
+      snack('تعذر تحميل المحادثة');
+    }
+  }
+
+  void newChat() {
+    setState(() {
+      chatId = null;
+      lastUser = null;
+      msgs.clear();
+      tc.clear();
+    });
+  }
+
+  Future<(int, dynamic)> _post(Map<String, Object?> body) async {
+    final c = widget.cloud;
+    try {
+      if (!await c.ensure()) return (-1, null);
+      final r = await c.hc.openUrl('POST', Uri.parse('$sbUrl/functions/v1/$kAiFn')).timeout(const Duration(seconds: 15));
+      r.headers.set('apikey', sbKey);
+      r.headers.set('Authorization', 'Bearer ${c.at}');
+      r.headers.set('Content-Type', 'application/json');
+      r.add(utf8.encode(jsonEncode(body)));
+      final res = await r.close().timeout(const Duration(seconds: 60));
+      final txt = await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 60));
+      dynamic js;
+      try {
+        js = txt.isEmpty ? null : jsonDecode(txt);
+      } catch (_) {
+        js = txt;
+      }
+      return (res.statusCode, js);
+    } on TimeoutException {
+      return (-2, null);
+    } catch (_) {
+      return (-1, null);
+    }
+  }
+
+  String _errText(int code, dynamic b) {
+    final e = b is Map ? '${b['error']}' : '';
+    if (code == -1) return 'لا يوجد اتصال بالإنترنت. تأكد من الشبكة وحاول مرة أخرى.';
+    if (code == -2 || code == 504) return 'انتهت مهلة الطلب. حاول مرة أخرى.';
+    if (e == 'daily_limit') return 'وصلت للحد اليومي لاستخدام ORX AI. جرّب غداً.';
+    if (e == 'rate_limited' || code == 429) return 'طلبات كثيرة في وقت قصير. انتظر قليلاً وحاول مرة أخرى.';
+    if (e == 'not_configured') return 'ORX AI غير مُفعّل بعد من جهة الخادم.';
+    if (e == 'too_long') return 'الرسالة طويلة جداً. اختصرها وحاول مرة أخرى.';
+    if (e == 'chat_not_found') return 'المحادثة غير موجودة. ابدأ محادثة جديدة.';
+    if (code == 401) return 'انتهت جلستك. أعد تسجيل الدخول.';
+    if (code == 404) return 'خدمة ORX AI غير منشورة على الخادم بعد.';
+    if (e == 'busy') return 'المساعد مشغول الآن. حاول بعد لحظات.';
+    return 'تعذر الحصول على رد الآن. حاول مرة أخرى.';
+  }
+
+  Future<void> ask(String text, {bool addUser = true}) async {
+    if (sending) return;
+    setState(() {
+      if (addUser) msgs.add(AiMsg('user', text));
+      sending = true;
+      lastUser = text;
+    });
+    toBottom();
+    final r = await _post({'message': text, if (chatId != null) 'chat_id': chatId});
+    if (!mounted) return;
+    setState(() {
+      sending = false;
+      final b = r.$2;
+      if (r.$1 == 200 && b is Map && b['reply'] is String) {
+        chatId = (b['chat_id'] as String?) ?? chatId;
+        msgs.add(AiMsg('assistant', b['reply'] as String));
+      } else {
+        msgs.add(AiMsg('assistant', _errText(r.$1, b), error: true));
+      }
+    });
+    toBottom();
+  }
+
+  void send() {
+    final t = tc.text.trim();
+    if (t.isEmpty || sending) return;
+    tc.clear();
+    ask(t);
+  }
+
+  void retry() {
+    final t = lastUser;
+    if (t == null || sending) return;
+    if (msgs.isNotEmpty && msgs.last.error) setState(() => msgs.removeLast());
+    ask(t, addUser: false);
+  }
+
+  Future<void> history() async {
+    final r = await widget.cloud.rest('GET', '/rest/v1/ai_chats?select=id,title,updated_at&order=updated_at.desc&limit=30');
+    if (!mounted) return;
+    if (r.$1 != 200 || r.$2 is! List) {
+      snack('تعذر تحميل المحادثات السابقة');
+      return;
+    }
+    final l = [for (final e in r.$2 as List) Map<String, dynamic>.from(e as Map)];
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (c) => StatefulBuilder(
+        builder: (c, st) => SizedBox(
+          height: MediaQuery.of(c).size.height * .6,
+          child: Column(children: [
+            const Text('المحادثات السابقة', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            Expanded(
+              child: l.isEmpty
+                  ? const Center(child: Text('لا توجد محادثات سابقة'))
+                  : ListView(children: [
+                      for (final e in l)
+                        ListTile(
+                          leading: const Icon(Icons.chat_bubble_outline_rounded),
+                          title: fw.Text('${e['title']}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                          onTap: () {
+                            Navigator.pop(c);
+                            openChat(e['id'] as String);
+                          },
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () async {
+                              final d = await widget.cloud.rest('DELETE', '/rest/v1/ai_chats?id=eq.${e['id']}');
+                              if (d.$1 >= 200 && d.$1 < 300) {
+                                st(() => l.remove(e));
+                                if (chatId == e['id'] && mounted) {
+                                  setState(() {
+                                    chatId = null;
+                                    msgs.clear();
+                                  });
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                    ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget aiBadge({double size = 32}) => Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [kBubbleA, kBubbleB])),
+        child: Icon(Icons.auto_awesome, size: size * .55, color: Colors.white),
+      );
+
+  Widget welcome() => Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            aiBadge(size: 72),
+            const SizedBox(height: 14),
+            const Text('مرحباً، أنا ORX AI', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            const Text('أكتب معك، أحسّن رسائلك، ألخّص، وأقترح أفكاراً. اسألني أي شيء.', textAlign: TextAlign.center),
+            const SizedBox(height: 18),
+            Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center, children: [
+              for (final s in _sugg)
+                ActionChip(
+                  avatar: Icon(s.$1, size: 18),
+                  label: Text(s.$2),
+                  onPressed: () {
+                    tc.text = T(s.$3);
+                    tc.selection = TextSelection.collapsed(offset: tc.text.length);
+                    setState(() {});
+                  },
+                ),
+            ]),
+          ]),
+        ),
+      );
+
+  Widget bubble(AiMsg m) {
+    final cs = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mine = m.role == 'user';
+    final fg = mine ? Colors.white : (m.error ? cs.onErrorContainer : cs.onSurface);
+    return Align(
+      alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * .85),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+          decoration: BoxDecoration(
+            color: mine ? null : (m.error ? cs.errorContainer : (dark ? kNavyCard : cs.surfaceContainerHigh)),
+            gradient: mine ? const LinearGradient(colors: [kBubbleA, kBubbleB]) : null,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Directionality(
+              textDirection: _aiRtl(m.text) ? TextDirection.rtl : TextDirection.ltr,
+              child: SelectableText(m.text, style: TextStyle(color: fg, fontSize: 15.5, height: 1.45)),
+            ),
+            if (!mine)
+              m.error
+                  ? TextButton.icon(
+                      onPressed: sending ? null : retry,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('إعادة المحاولة'),
+                    )
+                  : IconButton(
+                      tooltip: T('نسخ'),
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.copy_rounded, size: 18, color: cs.onSurfaceVariant),
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: m.text));
+                        if (mounted) snack('تم النسخ');
+                      },
+                    ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget typing() {
+    final cs = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(color: dark ? kNavyCard : cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(18)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+          const SizedBox(width: 10),
+          Text('ORX AI يكتب...', style: TextStyle(color: cs.onSurfaceVariant)),
+        ]),
+      ),
+    );
+  }
+
+  Widget composer() {
+    final cs = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final txt = tc.text;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(color: dark ? kNavyCard : cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(24)),
+              child: TextField(
+                controller: tc,
+                minLines: 1,
+                maxLines: 5,
+                maxLength: 4000,
+                textDirection: txt.trim().isEmpty ? null : (_aiRtl(txt) ? TextDirection.rtl : TextDirection.ltr),
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                    hintText: T('اكتب رسالتك لـ ORX AI...'), border: InputBorder.none, counterText: ''),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton.filled(
+            onPressed: sending || txt.trim().isEmpty ? null : send,
+            style: IconButton.styleFrom(minimumSize: const Size(48, 48), backgroundColor: dark ? kBubbleA : null),
+            icon: const Icon(Icons.send_rounded),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext c) {
+    final dark = Theme.of(c).brightness == Brightness.dark;
+    return Scaffold(
+      backgroundColor: dark ? kNavyBg : null,
+      appBar: AppBar(
+        backgroundColor: dark ? kNavyBg : null,
+        title: Row(mainAxisSize: MainAxisSize.min, children: [
+          aiBadge(),
+          const SizedBox(width: 10),
+          const Text('ORX AI', style: TextStyle(fontWeight: FontWeight.w800)),
+        ]),
+        actions: [
+          IconButton(tooltip: T('المحادثات السابقة'), icon: const Icon(Icons.history_rounded), onPressed: sending ? null : history),
+          IconButton(tooltip: T('محادثة جديدة'), icon: const Icon(Icons.add_comment_outlined), onPressed: sending ? null : newChat),
+        ],
+      ),
+      body: Column(children: [
+        Expanded(
+          child: loading
+              ? const Center(child: CircularProgressIndicator())
+              : msgs.isEmpty && !sending
+                  ? welcome()
+                  : ListView.builder(
+                      controller: sc,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: msgs.length + (sending ? 1 : 0),
+                      itemBuilder: (ctx, i) => i < msgs.length ? bubble(msgs[i]) : typing(),
+                    ),
+        ),
+        composer(),
+      ]),
     );
   }
 }
