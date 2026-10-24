@@ -22,7 +22,7 @@ import 'package:cryptography/cryptography.dart'
 
 const svc = 'com.btchat.app';
 const strat = Strategy.P2P_CLUSTER;
-const seed = Color(0xFF14C8E8);
+const seed = Color(0xFF2F6BFF);
 const ownerPk = '4WViu8FM9l7q8f0JmoawykKzCyzcRWJSFooFcGf88I8=';
 const storyColors = [
   Color(0xFF0E7C66),
@@ -73,7 +73,7 @@ TextStyle storyTextStyle(int f, {double size = 28}) {
 }
 
 const accents = [
-  Color(0xFF14C8E8),
+  Color(0xFF2F6BFF),
   Color(0xFF6A1B9A),
   Color(0xFFC2185B),
   Color(0xFFEF6C00),
@@ -146,6 +146,18 @@ const _en = <String, String>{
   'حسابي': 'Profile',
   'المظهر': 'Settings',
   'أصوات الإشعارات': 'Notification sounds',
+  'تمت إعادة النشر لمتابعيك': "Relayed to your followers",
+  'أعدت نشر هذا المنشور من قبل': "You already relayed this post",
+  'تعذر إعادة النشر': "Couldn't relay",
+  'تم إلغاء Relay': "Relay removed",
+  'تعذر إلغاء Relay': "Couldn't remove Relay",
+  'إلغاء Relay': "Undo Relay",
+  'إعادة نشر المنشور لمتابعيك': "Share this post with your followers",
+  'أضف تعليقك فوق المنشور': "Add your thoughts on top of the post",
+  'اكتب رأيك فوق المنشور...': "Write your thoughts...",
+  'Relay متاح للمنشورات المنشورة على الإنترنت فقط': "Relay is only available for online posts",
+  'لا يمكنك عمل Relay لمنشورك': "You can't relay your own post",
+  'منشورات الحسابات الخاصة لا يمكن إعادة نشرها': "Private account posts can't be relayed",
   'مساعدك الذكي للكتابة والتلخيص والأفكار': "Your smart assistant for writing, summaries and ideas",
   'ORX AI يحتاج اتصالاً بالإنترنت وحساباً مسجّلاً': "ORX AI needs an internet connection and a signed-in account",
   'اكتب منشوراً': "Write a post",
@@ -720,12 +732,12 @@ ThemeData orxTheme(Brightness b, [Color? sc]) {
   var cs = ColorScheme.fromSeed(seedColor: sc ?? seed, brightness: b);
   if (b == Brightness.dark) {
     cs = cs.copyWith(
-      surface: const Color(0xFF050B18),
-      surfaceContainerLowest: const Color(0xFF030813),
-      surfaceContainerLow: const Color(0xFF08101F),
-      surfaceContainer: const Color(0xFF0A1428),
-      surfaceContainerHigh: const Color(0xFF0F1B33),
-      surfaceContainerHighest: const Color(0xFF14233F),
+      surface: const Color(0xFF060C24),
+      surfaceContainerLowest: const Color(0xFF040919),
+      surfaceContainerLow: const Color(0xFF0A1230),
+      surfaceContainer: const Color(0xFF0E1736),
+      surfaceContainerHigh: const Color(0xFF131D40),
+      surfaceContainerHighest: const Color(0xFF1A2550),
       outlineVariant: cs.primary.withOpacity(0.25),
     );
   }
@@ -733,6 +745,32 @@ ThemeData orxTheme(Brightness b, [Color? sc]) {
     useMaterial3: true,
     colorScheme: cs,
     scaffoldBackgroundColor: cs.surface,
+    textTheme: GoogleFonts.cairoTextTheme(ThemeData(brightness: b, useMaterial3: true).textTheme),
+    appBarTheme: AppBarTheme(
+      backgroundColor: cs.surface,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+      titleTextStyle: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.w800, color: cs.onSurface),
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      color: cs.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: cs.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+    ),
+    chipTheme: ChipThemeData(shape: const StadiumBorder(), side: BorderSide(color: cs.outlineVariant.withAlpha(90))),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(shape: const StadiumBorder(), minimumSize: const Size(64, 46)),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(shape: const StadiumBorder(), minimumSize: const Size(64, 46)),
+    ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
     bottomSheetTheme: const BottomSheetThemeData(
       showDragHandle: true,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
@@ -1216,6 +1254,13 @@ class Msg {
       t: j['t'], img: j['g'], aud: j['u'], r: Map<String, String>.from((j['r'] as Map?) ?? {}));
 }
 
+class RelayRec {
+  final String postId, by;
+  final String? note;
+  final DateTime at;
+  RelayRec(this.postId, this.by, this.note, this.at);
+}
+
 class Post {
   final String id, from;
   String? text, img, ip, ctxt;
@@ -1224,9 +1269,16 @@ class Post {
   String kind;
   final DateTime at;
   Set<String> likes;
+  String? rby, rnote; // بيانات الـ Relay لو الكارت ده إعادة نشر
+  DateTime? rat;
   Post(this.id, this.from, {this.text, this.img, this.ip, this.im = false, this.srv = false, this.kind = 'post', this.cms, this.ctxt, DateTime? at, Set<String>? likes})
       : at = at ?? DateTime.now(),
         likes = likes ?? {};
+  /// نسخة عرض فقط من المنشور الأصلي (نفس الاسم والمحتوى وتاريخ النشر الأصلي) مع بيانات من أعاد نشره
+  Post relayCopy(RelayRec r) => Post(id, from, text: text, img: img, ip: ip, im: im, srv: srv, kind: kind, cms: cms, ctxt: ctxt, at: at, likes: likes)
+    ..rby = r.by
+    ..rnote = r.note
+    ..rat = r.at;
   Color get color =>
       storyColors[(text ?? id).codeUnits.fold(0, (a, b) => a + b) % storyColors.length];
   Map toJson() => {
@@ -2687,6 +2739,209 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   final plusU = <String, bool>{};
   // عدد الرسائل الواردة التي قرأها المستخدم في كل محادثة (لشارة غير المقروء)
   final readIn = <String, int>{};
+  // ---- ORX Relay ----
+  final relayers = <String, Set<String>>{}; // postId -> اللي أعادوا نشره
+  final relayRecs = <RelayRec>[];
+  final relayOrig = <String, Post>{}; // منشورات أصلية اتجابت عشان تتعرض كـ Relay
+  bool relayed(Post p) => relayers[p.id]?.contains(me!.u) ?? false;
+
+  Post? findPost(String id) {
+    for (final p in posts) {
+      if (p.id == id) return p;
+    }
+    for (final p in explore) {
+      if (p.id == id) return p;
+    }
+    return relayOrig[id];
+  }
+
+  List<Post> relayEntries(List<Post> base) {
+    final inFeed = {for (final p in base) p.id};
+    final out = <Post>[];
+    final seen = <String>{};
+    for (final r in relayRecs) {
+      final byMe = r.by == me!.u;
+      if (!(byMe || following.contains(r.by)) || blocked.contains(r.by)) continue;
+      if (feedTab == 2 && !byMe && !followers.contains(r.by)) continue;
+      final o = findPost(r.postId);
+      if (o == null || blocked.contains(o.from) || o.kind != 'post') continue;
+      if (inFeed.contains(o.id) && (r.note ?? '').isEmpty) continue; // الأصل ظاهر أصلاً
+      if (!seen.add('${o.id}|${r.by}')) continue;
+      out.add(o.relayCopy(r));
+    }
+    return out;
+  }
+
+  Future<void> loadRelays() async {
+    if (!netReady || me == null || !await cloud.ensure()) return;
+    final r = await cloud.rest('GET', '/rest/v1/post_relays?select=post_id,relayer,comment,created_at&order=created_at.desc&limit=500');
+    if (r.$1 != 200 || r.$2 is! List || !mounted) return;
+    final recs = <RelayRec>[];
+    final map = <String, Set<String>>{};
+    for (final e in r.$2 as List) {
+      final m = e as Map;
+      final id = m['post_id'] as String, by = m['relayer'] as String;
+      recs.add(RelayRec(id, by, m['comment'] as String?, DateTime.tryParse('${m['created_at']}')?.toLocal() ?? DateTime.now()));
+      map.putIfAbsent(id, () => {}).add(by);
+    }
+    // عدّادات المنشورات المعروضة اللي ما ظهرتش في آخر 500
+    final shown = {...posts.where((p) => p.srv).map((p) => p.id), ...explore.map((p) => p.id)}
+        .where((id) => !map.containsKey(id) && RegExp(r'^[A-Za-z0-9_]+$').hasMatch(id))
+        .take(120)
+        .toList();
+    if (shown.isNotEmpty) {
+      final c = await cloud.rest('GET', '/rest/v1/post_relays?post_id=in.(${shown.join(',')})&select=post_id,relayer&limit=2000');
+      if (c.$1 == 200 && c.$2 is List) {
+        for (final e in c.$2 as List) {
+          map.putIfAbsent((e as Map)['post_id'] as String, () => {}).add(e['relayer'] as String);
+        }
+      }
+    }
+    // الأصول اللي مش عندنا (من ناس بتتابعهم أعادوا نشرها)
+    final need = {
+      for (final x in recs)
+        if ((x.by == me!.u || following.contains(x.by)) && findPost(x.postId) == null && RegExp(r'^[A-Za-z0-9_]+$').hasMatch(x.postId)) x.postId,
+    }.take(60).toList();
+    if (need.isNotEmpty) {
+      final o = await cloud.rest('GET', '/rest/v1/posts?id=in.(${need.join(',')})&kind=eq.post&select=*');
+      if (o.$1 == 200 && o.$2 is List) {
+        for (final row in o.$2 as List) {
+          final po = rowToPost(Map.from(row as Map));
+          if (po != null && !blocked.contains(po.from)) relayOrig[po.id] = po;
+        }
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      relayRecs
+        ..clear()
+        ..addAll(recs);
+      relayers
+        ..clear()
+        ..addAll(map);
+    });
+  }
+
+  Future<void> doRelay(Post p, {String? note, VoidCallback? refresh}) async {
+    final u = me!.u;
+    if (relayed(p)) return;
+    final n = (note ?? '').trim();
+    setState(() => relayers.putIfAbsent(p.id, () => {}).add(u));
+    refresh?.call();
+    final r = await cloud.rest('POST', '/rest/v1/post_relays',
+        headers: {'Prefer': 'return=minimal'}, body: {'post_id': p.id, 'relayer': u, if (n.isNotEmpty) 'comment': n});
+    if (!mounted) return;
+    if (r.$1 >= 200 && r.$1 < 300) {
+      setState(() => relayRecs.insert(0, RelayRec(p.id, u, n.isEmpty ? null : n, DateTime.now())));
+      refresh?.call();
+      snack('تمت إعادة النشر لمتابعيك');
+    } else if (r.$1 == 409) {
+      snack('أعدت نشر هذا المنشور من قبل'); // موجود فعلاً على السيرفر، نخلّي العدّاد صحيح
+    } else {
+      setState(() => relayers[p.id]?.remove(u));
+      refresh?.call();
+      snack('تعذر إعادة النشر');
+    }
+  }
+
+  Future<void> undoRelay(Post p, {VoidCallback? refresh}) async {
+    final u = me!.u;
+    final uid = cloud.uid;
+    if (uid == null) return;
+    final old = List<RelayRec>.of(relayRecs);
+    setState(() {
+      relayers[p.id]?.remove(u);
+      relayRecs.removeWhere((x) => x.postId == p.id && x.by == u);
+    });
+    refresh?.call();
+    final r = await cloud.rest('DELETE', '/rest/v1/post_relays?post_id=eq.${enc(p.id)}&relayer_uid=eq.$uid');
+    if (!mounted) return;
+    if (r.$1 >= 200 && r.$1 < 300) {
+      snack('تم إلغاء Relay');
+    } else {
+      setState(() {
+        relayers.putIfAbsent(p.id, () => {}).add(u);
+        relayRecs
+          ..clear()
+          ..addAll(old);
+      });
+      refresh?.call();
+      snack('تعذر إلغاء Relay');
+    }
+  }
+
+  Future<void> relayThoughts(Post p, {VoidCallback? refresh}) async {
+    final tc = TextEditingController();
+    final t = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Relay with your thoughts'),
+        content: TextField(
+          controller: tc,
+          autofocus: true,
+          maxLength: 300,
+          maxLines: 4,
+          minLines: 2,
+          decoration: InputDecoration(hintText: T('اكتب رأيك فوق المنشور...'), border: const OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.pop(c, tc.text.trim()), child: const Text('Relay')),
+        ],
+      ),
+    );
+    tc.dispose();
+    if (t == null || !mounted) return;
+    doRelay(p, note: t, refresh: refresh);
+  }
+
+  void relayMenu(Post p, {VoidCallback? refresh}) {
+    if (!p.srv || p.kind != 'post') {
+      snack('Relay متاح للمنشورات المنشورة على الإنترنت فقط');
+      return;
+    }
+    if (p.from == me!.u) {
+      snack('لا يمكنك عمل Relay لمنشورك');
+      return;
+    }
+    if (pinfo[p.from]?['is_private'] == true) {
+      snack('منشورات الحسابات الخاصة لا يمكن إعادة نشرها');
+      return;
+    }
+    final mine = relayed(p);
+    sheet('Relay', (c, st) => [
+          if (mine)
+            ListTile(
+              leading: const Icon(Icons.undo_rounded),
+              title: const Text('إلغاء Relay'),
+              onTap: () {
+                Navigator.pop(c);
+                undoRelay(p, refresh: refresh);
+              },
+            )
+          else ...[
+            ListTile(
+              leading: const Icon(Icons.repeat_rounded),
+              title: const Text('Relay'),
+              subtitle: const Text('إعادة نشر المنشور لمتابعيك'),
+              onTap: () {
+                Navigator.pop(c);
+                doRelay(p, refresh: refresh);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.rate_review_outlined),
+              title: const Text('Relay with your thoughts'),
+              subtitle: const Text('أضف تعليقك فوق المنشور'),
+              onTap: () {
+                Navigator.pop(c);
+                relayThoughts(p, refresh: refresh);
+              },
+            ),
+          ],
+        ]);
+  }
+
   int ringStyle = 0; // شكل حلقة الستوري: 0 كلاسيك | 1 نيون | 2 ذهبي | 3 مقطّع
   final notifs = <Map<String, dynamic>>[];
   int notifUnread = 0;
@@ -4038,6 +4293,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       loadInfo({for (final p in [...posts, ...explore, ...reelsList]) p.from});
       pullOwnerStats();
       await syncLikes(<Post>[...posts.where((p) => p.srv), ...explore, ...reelsList]);
+      await loadRelays();
 
       final since = DateTime.now().toUtc().subtract(const Duration(hours: 24)).toIso8601String();
       final rs = await cloud.rest('GET',
@@ -6292,6 +6548,26 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(color: cs.surfaceContainerLow, borderRadius: BorderRadius.circular(24)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (p.rby != null)
+          InkWell(
+            onTap: () => openProf(p.rby!),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+              child: Row(children: [
+                Icon(Icons.repeat_rounded, size: 16, color: cs.primary),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: fw.Text(p.rby == me!.u ? 'Relayed by you' : 'Relayed by @${p.rby}',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: cs.primary)),
+                ),
+              ]),
+            ),
+          ),
+        if ((p.rnote ?? '').isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+            child: fw.Text(p.rnote!, style: const TextStyle(fontSize: 15)),
+          ),
         InkWell(
           onTap: refresh == null ? () => openProf(p.from) : null,
           child: Padding(
@@ -6328,6 +6604,14 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             const SizedBox(width: 4),
             IconButton(icon: const Icon(Icons.mode_comment_outlined), onPressed: () => showComments(p)),
             Text('${ccount[p.id] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: 'Relay',
+              icon: Icon(Icons.repeat_rounded, color: relayed(p) ? cs.primary : null),
+              onPressed: () => relayMenu(p, refresh: refresh),
+            ),
+            Text('${relayers[p.id]?.length ?? 0}',
+                style: TextStyle(fontWeight: FontWeight.w700, color: relayed(p) ? cs.primary : null)),
             const SizedBox(width: 4),
             IconButton(icon: const Icon(Icons.share_rounded), onPressed: () => sharePost(p)),
             if (p.from == me!.u) ...[
@@ -6584,15 +6868,16 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Widget feed() {
     final cs = Theme.of(context).colorScheme;
-    final l = (exploreTab
+    final base = exploreTab
         ? explore.where((p) => !blocked.contains(p.from)).toList()
-        : posts.where((p) => p.kind == 'post' && !blocked.contains(p.from) && (p.from == me!.u || (feedTab == 2 ? (following.contains(p.from) && followers.contains(p.from)) : following.contains(p.from)))).toList())
+        : posts.where((p) => p.kind == 'post' && !blocked.contains(p.from) && (p.from == me!.u || (feedTab == 2 ? (following.contains(p.from) && followers.contains(p.from)) : following.contains(p.from)))).toList();
+    final l = [...base, if (!exploreTab) ...relayEntries(base)]
       ..sort((a, b) {
         if (exploreTab) {
           final pa = plusBoost(a), pb = plusBoost(b);
           if (pa != pb) return pa ? -1 : 1;
         }
-        return b.at.compareTo(a.at);
+        return (b.rat ?? b.at).compareTo(a.rat ?? a.at);
       });
     final sug = contacts.values.where((p) => p.u != me!.u && !blocked.contains(p.u) && !following.contains(p.u)).toList();
     return RefreshIndicator(
