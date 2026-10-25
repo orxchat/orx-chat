@@ -745,7 +745,7 @@ ThemeData orxTheme(Brightness b, [Color? sc]) {
     useMaterial3: true,
     colorScheme: cs,
     scaffoldBackgroundColor: cs.surface,
-    textTheme: GoogleFonts.cairoTextTheme(ThemeData(brightness: b, useMaterial3: true).textTheme),
+    textTheme: ThemeData(brightness: b, useMaterial3: true).textTheme.apply(fontFamily: GoogleFonts.cairo().fontFamily),
     appBarTheme: AppBarTheme(
       backgroundColor: cs.surface,
       surfaceTintColor: Colors.transparent,
