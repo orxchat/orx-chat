@@ -146,6 +146,21 @@ const _en = <String, String>{
   'حسابي': 'Profile',
   'المظهر': 'Settings',
   'أصوات الإشعارات': 'Notification sounds',
+  'دعوة صديق': "Invite a friend",
+  'انسخ الرسالة وابعتها لأصحابك على أي تطبيق.': "Copy the message and send it to your friends on any app.",
+  'نسخ الرسالة': "Copy message",
+  'تم نسخ رسالة الدعوة': "Invite message copied",
+  'مشاركة ملفي ودعوة الأصدقاء': "Share my profile and invite friends",
+  'تخطّي': "Skip",
+  'التالي': "Next",
+  'ابدأ الآن': "Get started",
+  'تواصل في أي وقت': "Stay connected, anytime",
+  'رسائل مشفّرة مع أصدقائك بالإنترنت، وبالبلوتوث لما يكونوا قريبين منك.': "Encrypted messages with friends online, and over Bluetooth when they are nearby.",
+  'مجتمعات واكتشاف': "Communities and discovery",
+  'انضم لمجتمعات تهمّك، وشارك قصصك ومنشوراتك، وأعد نشر الأفضل بـ Relay.': "Join communities you care about, share stories and posts, and Relay the best ones.",
+  'مساعدك الذكي يكتب معك، يحسّن رسائلك، ويلخّص النصوص.': "Your smart assistant writes with you, improves your messages and summarizes texts.",
+  'خصوصيتك أولاً': "Your privacy comes first",
+  'محادثاتك مشفّرة، وإنت اللي بتتحكم في حسابك وظهورك.': "Your chats are encrypted, and you control your account and visibility.",
   'تمت إعادة النشر لمتابعيك': "Relayed to your followers",
   'أعدت نشر هذا المنشور من قبل': "You already relayed this post",
   'تعذر إعادة النشر': "Couldn't relay",
@@ -1001,6 +1016,8 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
 const sbUrl = 'https://leotxhvwrbuqjssdyqav.supabase.co';
 // اسم الـ Edge Function الخاصة بـ ORX AI في Supabase (من رابطها: /functions/v1/<الاسم>)
 const kAiFn = 'dynamic-api';
+// رابط تحميل التطبيق اللي بيظهر في رسالة الدعوة (بيشاور على آخر Release تلقائي)
+const kInviteUrl = 'https://github.com/orxchat/orx-chat/releases/latest/download/orx-chat.apk';
 const sbKey = 'sb_publishable_fjjlcGPmqjvJN9iXDsSvVQ_OHOxCLfo';
 
 /// Minimal Supabase client (auth + REST + storage) over dart:io, no extra packages.
@@ -1515,6 +1532,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         myStoryLikes.addAll(List<String>.from((j['myStoryLikes'] as List?) ?? []));
         viewed.addAll(List<String>.from((j['viewed'] as List?) ?? []));
         ringStyle = ((j['ring'] as num?)?.toInt() ?? 0).clamp(0, 3);
+        onboarded = j['onb'] == true;
         backedUp
           ..clear()
           ..addAll(List<String>.from((j['bk'] as List?) ?? []));
@@ -1544,6 +1562,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         setState(() => me = Prof(me!.u, me!.n, a: me!.a, k: pk, sd: sd, bio: me!.bio));
         save();
       }
+      if (me != null && !onboarded) WidgetsBinding.instance.addPostFrameCallback((_) => showOnboarding());
       initNet();
     } catch (_) {}
   }
@@ -1573,6 +1592,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         'readIn': readIn,
         'ring': ringStyle,
         'bk': backedUp.toList(),
+        'onb': onboarded,
         'lang': langCode.value,
         'cloud': {'rt': cloud.rt, 'uid': cloud.uid, 'avSrc': cavSrc, 'av': cav, 'last': lastMsgId},
       }));
@@ -2739,6 +2759,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   final plusU = <String, bool>{};
   // عدد الرسائل الواردة التي قرأها المستخدم في كل محادثة (لشارة غير المقروء)
   final readIn = <String, int>{};
+  bool onboarded = false;
   // ---- ORX Relay ----
   final relayers = <String, Set<String>>{}; // postId -> اللي أعادوا نشره
   final relayRecs = <RelayRec>[];
@@ -6166,6 +6187,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           it(Icons.palette_outlined, 'المظهر', themeSheet),
           it(Icons.language_rounded, 'اللغة', langSheet),
           it(Icons.smart_toy_outlined, 'ORX AI', openAi),
+          it(Icons.person_add_alt_1_rounded, 'دعوة صديق', inviteSheet),
           it(Icons.groups_2_outlined, 'المجتمعات', openCommunities),
           it(Icons.auto_awesome, 'ORX Plus', plusSheet),
           it(Icons.motion_photos_on_outlined, 'شكل الستوري', ringSheet),
@@ -6246,6 +6268,45 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           ),
         ),
       );
+
+  Future<void> showOnboarding() async {
+    if (!mounted || onboarded) return;
+    onboarded = true; // مرة واحدة فقط، حتى لو اتقفلت
+    save();
+    await Navigator.push(context, MaterialPageRoute(fullscreenDialog: true, builder: (_) => const OnboardingPage()));
+  }
+
+  String inviteText() {
+    final u = me!.u;
+    final link = kInviteUrl.isEmpty ? '' : '\n$kInviteUrl';
+    return isEn ? 'Join me on ORX Chat! Find me: @$u$link' : 'انضم لي على ORX Chat! ابحث عني: @$u$link';
+  }
+
+  void inviteSheet() => sheet('دعوة صديق', (c, st) {
+        final cs = Theme.of(context).colorScheme;
+        final text = inviteText();
+        return [
+          const Text('انسخ الرسالة وابعتها لأصحابك على أي تطبيق.'),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(16)),
+            child: SelectableText(text, style: const TextStyle(fontSize: 15, height: 1.5)),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: text));
+              if (mounted) {
+                Navigator.pop(context);
+                snack('تم نسخ رسالة الدعوة');
+              }
+            },
+            icon: const Icon(Icons.copy_rounded),
+            label: const Text('نسخ الرسالة'),
+          ),
+        ];
+      });
 
   Future<void> openAi() async {
     if (me == null || !netReady || !await cloud.ensure()) {
@@ -7263,6 +7324,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 ),
               ]),
       ),
+      if (mine)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: OutlinedButton.icon(
+            onPressed: inviteSheet,
+            icon: const Icon(Icons.ios_share_rounded),
+            label: const Text('مشاركة ملفي ودعوة الأصدقاء'),
+          ),
+        ),
       if (mine) proSection(),
       const Divider(height: 1),
       if (!mine && !isFol && pinfo[u]?['is_private'] == true)
@@ -9829,6 +9899,108 @@ class _AiChatPageState extends State<AiChatPage> {
         ),
         composer(),
       ]),
+    );
+  }
+}
+
+// ---------------------------- شاشة الترحيب (أول مرة) ----------------------------
+class OnboardingPage extends StatefulWidget {
+  const OnboardingPage({super.key});
+  @override
+  State<OnboardingPage> createState() => _OnboardingPageState();
+}
+
+class _OnboardingPageState extends State<OnboardingPage> {
+  final pc = PageController();
+  int page = 0;
+
+  static const _slides = [
+    (Icons.forum_rounded, 'تواصل في أي وقت', 'رسائل مشفّرة مع أصدقائك بالإنترنت، وبالبلوتوث لما يكونوا قريبين منك.'),
+    (Icons.groups_2_rounded, 'مجتمعات واكتشاف', 'انضم لمجتمعات تهمّك، وشارك قصصك ومنشوراتك، وأعد نشر الأفضل بـ Relay.'),
+    (Icons.auto_awesome, 'ORX AI', 'مساعدك الذكي يكتب معك، يحسّن رسائلك، ويلخّص النصوص.'),
+    (Icons.lock_rounded, 'خصوصيتك أولاً', 'محادثاتك مشفّرة، وإنت اللي بتتحكم في حسابك وظهورك.'),
+  ];
+
+  @override
+  void dispose() {
+    pc.dispose();
+    super.dispose();
+  }
+
+  void next() {
+    if (page >= _slides.length - 1) {
+      Navigator.pop(context);
+    } else {
+      pc.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    }
+  }
+
+  @override
+  Widget build(BuildContext c) {
+    final last = page == _slides.length - 1;
+    return Scaffold(
+      backgroundColor: kNavyBg,
+      body: SafeArea(
+        child: Column(children: [
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(last ? '' : 'تخطّي', style: const TextStyle(color: Colors.white70)),
+            ),
+          ),
+          Expanded(
+            child: PageView.builder(
+              controller: pc,
+              itemCount: _slides.length,
+              onPageChanged: (i) => setState(() => page = i),
+              itemBuilder: (ctx, i) {
+                final s = _slides[i];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(colors: [kBubbleA, kBubbleB], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        boxShadow: [BoxShadow(color: kBubbleB.withAlpha(110), blurRadius: 30)],
+                      ),
+                      child: Icon(s.$1, size: 58, color: Colors.white),
+                    ),
+                    const SizedBox(height: 36),
+                    Text(s.$2, textAlign: TextAlign.center, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+                    const SizedBox(height: 14),
+                    Text(s.$3, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.white70)),
+                  ]),
+                );
+              },
+            ),
+          ),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            for (var i = 0; i < _slides.length; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: page == i ? 22 : 8,
+                height: 8,
+                decoration: BoxDecoration(color: page == i ? kBubbleA : Colors.white24, borderRadius: BorderRadius.circular(4)),
+              ),
+          ]),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: kBubbleA, foregroundColor: Colors.white, minimumSize: const Size(0, 52)),
+                onPressed: next,
+                child: Text(last ? 'ابدأ الآن' : 'التالي', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }
